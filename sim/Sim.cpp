@@ -185,8 +185,8 @@ void SimStep(Game& game, const float dt) {
             return;
         }
 
-        // Check level completion (past last segment).
-        if (player.position.z > lv->totalLength) {
+        // Check level completion (crossing finish zone).
+        if (CheckFinishZoneCrossing(*lv, player.position.z)) {
             game.levelComplete = true;
             game.runActive = false;
             game.runOver = true;

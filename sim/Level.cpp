@@ -4,6 +4,9 @@
 
 namespace {
 
+// Forward declaration for helper
+void AssignVariantsHelper(Level& lv);
+
 Level BuildLevel1() {
     Level lv{};
 
@@ -107,6 +110,30 @@ Level BuildLevel1() {
     addSeg(z, 30.0f, 0.0f, 8.0f, 0.0f);   z += 30.0f;
 
     lv.totalLength = z;
+    
+    // Start zone: Level 1 - Clean/simple intro gate, wide lane
+    lv.start.spawnZ = 2.0f;
+    lv.start.gateZ = 0.0f;
+    lv.start.zoneDepth = 8.0f;
+    lv.start.style = StartStyle::NeonGate;
+    lv.start.width = 8.0f;
+    lv.start.xOffset = 0.0f;
+    lv.start.topY = 0.0f;
+    lv.start.pylonSpacing = 2.5f;
+    lv.start.glowIntensity = 1.0f;
+    lv.start.stripeCount = 4;
+    
+    // Finish zone: Level 1 - Simple neon gate, wide forgiving lane
+    lv.finish.startZ = z - 25.0f;  // Start 25 units before end
+    lv.finish.endZ = z - 5.0f;     // Complete 5 units before totalLength
+    lv.finish.style = FinishStyle::NeonGate;
+    lv.finish.width = 8.0f;
+    lv.finish.xOffset = 0.0f;
+    lv.finish.topY = 0.0f;
+    lv.finish.glowIntensity = 1.0f;
+    lv.finish.hasRunway = true;
+    
+    AssignVariantsHelper(lv);
     return lv;
 }
 
@@ -235,6 +262,30 @@ Level BuildLevel2() {
     addSeg(z, 35.0f, 0.0f, 8.0f, 0.0f);   z += 35.0f;
 
     lv.totalLength = z;
+    
+    // Start zone: Level 2 - Denser industrial pylons, offset accents
+    lv.start.spawnZ = 2.0f;
+    lv.start.gateZ = 0.0f;
+    lv.start.zoneDepth = 10.0f;
+    lv.start.style = StartStyle::IndustrialPylons;
+    lv.start.width = 7.0f;
+    lv.start.xOffset = 0.3f;  // Slight offset accent
+    lv.start.topY = 0.0f;
+    lv.start.pylonSpacing = 1.8f;  // Denser spacing
+    lv.start.glowIntensity = 1.1f;
+    lv.start.stripeCount = 6;
+    
+    // Finish zone: Level 2 - Segmented pylons + mild lateral offset
+    lv.finish.startZ = z - 30.0f;
+    lv.finish.endZ = z - 5.0f;
+    lv.finish.style = FinishStyle::SegmentedPylons;
+    lv.finish.width = 7.0f;
+    lv.finish.xOffset = 0.5f;  // Mild lateral offset
+    lv.finish.topY = 0.0f;
+    lv.finish.glowIntensity = 1.2f;
+    lv.finish.hasRunway = true;
+    
+    AssignVariantsHelper(lv);
     return lv;
 }
 
@@ -371,6 +422,30 @@ Level BuildLevel3() {
     addSeg(z, 35.0f, 0.0f, 8.0f, 0.0f);   z += 35.0f;
 
     lv.totalLength = z;
+    
+    // Start zone: Level 3 - Precision-focused corridor-like start
+    lv.start.spawnZ = 2.0f;
+    lv.start.gateZ = 0.0f;
+    lv.start.zoneDepth = 9.0f;
+    lv.start.style = StartStyle::PrecisionCorridor;
+    lv.start.width = 5.5f;  // Tighter corridor
+    lv.start.xOffset = 0.0f;
+    lv.start.topY = 0.0f;
+    lv.start.pylonSpacing = 2.2f;
+    lv.start.glowIntensity = 1.3f;
+    lv.start.stripeCount = 7;  // More stripes for precision feel
+    
+    // Finish zone: Level 3 - Tighter precision corridor + animated chevrons
+    lv.finish.startZ = z - 28.0f;
+    lv.finish.endZ = z - 5.0f;
+    lv.finish.style = FinishStyle::PrecisionCorridor;
+    lv.finish.width = 5.5f;  // Tighter than previous levels
+    lv.finish.xOffset = 0.0f;
+    lv.finish.topY = 0.0f;
+    lv.finish.glowIntensity = 1.4f;
+    lv.finish.hasRunway = true;
+    
+    AssignVariantsHelper(lv);
     return lv;
 }
 
@@ -512,6 +587,32 @@ Level BuildLevel4() {
     addSeg(z, 40.0f, 0.0f, 8.0f, 0.0f);   z += 40.0f;
 
     lv.totalLength = z;
+    
+    // Start zone: Level 4 - Portal-esque or ringed launch frame
+    lv.start.spawnZ = 2.0f;
+    lv.start.gateZ = 0.0f;
+    lv.start.zoneDepth = 12.0f;
+    lv.start.style = StartStyle::RingedLaunch;
+    lv.start.width = 8.0f;
+    lv.start.xOffset = 0.0f;
+    lv.start.topY = 0.0f;
+    lv.start.pylonSpacing = 2.0f;
+    lv.start.glowIntensity = 1.6f;  // Strong visual identity
+    lv.start.stripeCount = 5;
+    lv.start.ringCount = 3.0f;
+    
+    // Finish zone: Level 4 - Multi-ring/portal-style finale with strongest visual payoff
+    lv.finish.startZ = z - 35.0f;
+    lv.finish.endZ = z - 5.0f;
+    lv.finish.style = FinishStyle::MultiRingPortal;
+    lv.finish.width = 8.0f;
+    lv.finish.xOffset = 0.0f;
+    lv.finish.topY = 0.0f;
+    lv.finish.ringCount = 4.0f;
+    lv.finish.glowIntensity = 1.8f;  // Strongest glow
+    lv.finish.hasRunway = true;
+    
+    AssignVariantsHelper(lv);
     return lv;
 }
 
@@ -534,7 +635,75 @@ Level BuildPlaceholderLevel() {
 
 const Level g_placeholderLevel = BuildPlaceholderLevel();
 
+// Helper function inside namespace to assign variants
+void AssignVariantsHelper(Level& lv) {
+    // Assign segment variants
+    for (int i = 0; i < lv.segmentCount; ++i) {
+        auto& seg = lv.segments[i];
+        
+        // Create deterministic hash from segment properties
+        // Using integer conversion to ensure consistent hashing
+        uint32_t hash = static_cast<uint32_t>(seg.startZ * 10.0f) ^ 
+                       static_cast<uint32_t>(seg.width * 100.0f) ^
+                       static_cast<uint32_t>(seg.topY * 50.0f) ^
+                       static_cast<uint32_t>(seg.length * 5.0f) ^
+                       static_cast<uint32_t>(i * 17u);
+        
+        // Variant selection: 0=Standard, 1=Thin, 2=Thick, 3=Wide, 4=Narrow, 5=Glowing, 6=Matte, 7=Striped
+        // Use width and height to influence variant choice
+        if (seg.width < 5.0f) {
+            seg.variantIndex = 4; // Narrow variant for narrow segments
+        } else if (seg.width > 7.0f) {
+            seg.variantIndex = 3; // Wide variant for wide segments
+        } else if (seg.topY > 1.0f) {
+            seg.variantIndex = 2; // Thick variant for elevated segments
+        } else {
+            seg.variantIndex = (hash % 8); // Cycle through all variants
+        }
+        
+        // Height scale: vary visual height (0.7 to 1.2)
+        seg.heightScale = 0.7f + ((hash / 8) % 6) * 0.1f;
+        
+        // Color tint: 0-2 for slight color variations
+        seg.colorTint = (hash / 48) % 3;
+    }
+    
+    // Assign obstacle variants
+    for (int i = 0; i < lv.obstacleCount; ++i) {
+        auto& obs = lv.obstacles[i];
+        
+        // Create deterministic hash from obstacle properties
+        uint32_t hash = static_cast<uint32_t>(obs.z * 10.0f) ^
+                       static_cast<uint32_t>(obs.x * 100.0f) ^
+                       static_cast<uint32_t>(obs.y * 50.0f) ^
+                       static_cast<uint32_t>(obs.sizeY * 30.0f) ^
+                       static_cast<uint32_t>(i * 23u);
+        
+        // Shape selection based on size and position
+        if (obs.sizeY > 2.0f) {
+            obs.shape = ObstacleShape::Spike; // Tall obstacles = spikes
+        } else if (obs.sizeX > obs.sizeZ * 1.5f) {
+            obs.shape = ObstacleShape::Wall; // Wide obstacles = walls
+        } else if (obs.sizeX < obs.sizeZ * 0.7f) {
+            obs.shape = ObstacleShape::Cylinder; // Pill-shaped for narrow obstacles
+        } else {
+            // Cycle through shapes based on hash
+            obs.shape = static_cast<ObstacleShape>((hash % 6));
+        }
+        
+        // Rotation: 0, 45, 90, or 135 degrees
+        obs.rotation = static_cast<float>((hash / 6) % 4) * 45.0f;
+    }
+}
+
 }  // namespace
+
+// Public interface - deterministic variant assignment based on segment/obstacle properties
+// Same properties = same variant (ensures all players see identical visuals)
+void AssignVariants(Level& lv) {
+    // Implementation is in anonymous namespace above
+    AssignVariantsHelper(lv);
+}
 
 const Level& GetLevel1() {
     return g_level1;
@@ -620,4 +789,22 @@ bool CheckObstacleCollision(const Level& level, const Vector3 playerPos,
         }
     }
     return false;
+}
+
+bool CheckFinishZoneCrossing(const Level& level, const float playerZ) {
+    // If no finish zone (placeholder levels), fall back to totalLength check
+    if (level.finish.style == FinishStyle::None) {
+        return playerZ > level.totalLength;
+    }
+    // Player completes when crossing finish.endZ
+    return playerZ > level.finish.endZ;
+}
+
+float GetSpawnZ(const Level& level) {
+    // If no start zone (placeholder levels), use default spawn position
+    if (level.start.style == StartStyle::None) {
+        return 2.0f;  // Default spawn Z
+    }
+    // Return spawn Z from start zone
+    return level.start.spawnZ;
 }

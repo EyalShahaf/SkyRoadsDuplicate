@@ -60,6 +60,25 @@ float HashFloat01Stage(uint32_t seed) {
     return static_cast<float>(HashStage(seed) & 0xFFFFu) / 65535.0f;
 }
 
+// Apply color tint to base color (slight hue/brightness shift)
+Color ApplyColorTint(const Color& base, int tintIndex) {
+    if (tintIndex == 0) return base;
+    
+    Color result = base;
+    if (tintIndex == 1) {
+        // Slight brightness increase
+        result.r = static_cast<unsigned char>(std::min(255, base.r + 15));
+        result.g = static_cast<unsigned char>(std::min(255, base.g + 15));
+        result.b = static_cast<unsigned char>(std::min(255, base.b + 15));
+    } else if (tintIndex == 2) {
+        // Slight hue shift (more blue/cyan)
+        result.r = static_cast<unsigned char>(std::max(0, base.r - 10));
+        result.g = static_cast<unsigned char>(std::min(255, base.g + 10));
+        result.b = static_cast<unsigned char>(std::min(255, base.b + 20));
+    }
+    return result;
+}
+
 Color GetStageBackgroundTop(int stage) {
     const uint32_t h = HashStage(static_cast<uint32_t>(stage));
     const float r = 20.0f + HashFloat01Stage(h) * 60.0f;
@@ -936,6 +955,449 @@ void RenderCockpitHUD(const Game& game, const LevelPalette& pal, float planarSpe
         DrawRectangle(x, hudStartY + 10, 4, 4, Color{100, 120, 140, 255});
     }
 }
+
+// Render finish line based on style
+void RenderFinishLine(const Level& level, const Vector3& playerRenderPos, const LevelPalette& pal, const float simTime) {
+    const auto& finish = level.finish;
+    if (finish.style == FinishStyle::None) return;
+    
+    // Distance culling
+    const float finishMidZ = (finish.startZ + finish.endZ) * 0.5f;
+    if (std::fabs(finishMidZ - playerRenderPos.z) > 80.0f) return;
+    
+    const float halfW = finish.width * 0.5f;
+    const float leftEdge = finish.xOffset - halfW;
+    const float rightEdge = finish.xOffset + halfW;
+    const float finishDepth = finish.endZ - finish.startZ;
+    const float finishMidZActual = (finish.startZ + finish.endZ) * 0.5f;
+    
+    // Base finish zone glow (subtle ground glow)
+    DrawCubeV(Vector3{finish.xOffset, finish.topY + 0.01f, finishMidZActual},
+              Vector3{finish.width, 0.02f, finishDepth},
+              Fade(pal.neonEdgeGlow, 0.2f * finish.glowIntensity));
+    
+    // Style-specific rendering
+    switch (finish.style) {
+        case FinishStyle::NeonGate: {
+            // Simple neon gate - two vertical posts with connecting beam
+            const float gateHeight = 4.0f;
+            const float gateZ = finish.startZ + finishDepth * 0.5f;
+            const float postWidth = 0.25f;
+            const float postDepth = 0.3f;
+            
+            // Left post
+            DrawCubeV(Vector3{leftEdge, finish.topY + gateHeight * 0.5f, gateZ},
+                      Vector3{postWidth, gateHeight, postDepth}, pal.neonEdge);
+            DrawCubeV(Vector3{leftEdge, finish.topY + gateHeight * 0.5f, gateZ},
+                      Vector3{postWidth * 3.0f, gateHeight * 1.2f, postDepth * 2.0f},
+                      Fade(pal.neonEdgeGlow, 0.4f * finish.glowIntensity));
+            
+            // Right post
+            DrawCubeV(Vector3{rightEdge, finish.topY + gateHeight * 0.5f, gateZ},
+                      Vector3{postWidth, gateHeight, postDepth}, pal.neonEdge);
+            DrawCubeV(Vector3{rightEdge, finish.topY + gateHeight * 0.5f, gateZ},
+                      Vector3{postWidth * 3.0f, gateHeight * 1.2f, postDepth * 2.0f},
+                      Fade(pal.neonEdgeGlow, 0.4f * finish.glowIntensity));
+            
+            // Connecting beam
+            const float beamY = finish.topY + gateHeight - 0.2f;
+            DrawCubeV(Vector3{finish.xOffset, beamY, gateZ},
+                      Vector3{finish.width, 0.15f, 0.2f}, pal.neonEdge);
+            DrawCubeV(Vector3{finish.xOffset, beamY, gateZ},
+                      Vector3{finish.width * 1.1f, 0.3f, 0.4f},
+                      Fade(pal.neonEdgeGlow, 0.3f * finish.glowIntensity));
+            
+            // Runway markers
+            if (finish.hasRunway) {
+                const int markerCount = 8;
+                for (int i = 0; i < markerCount; ++i) {
+                    const float t = static_cast<float>(i) / static_cast<float>(markerCount - 1);
+                    const float mz = finish.startZ + t * finishDepth;
+                    const float pulse = 0.8f + 0.2f * std::sin(simTime * 3.0f + t * 2.0f);
+                    DrawCubeV(Vector3{finish.xOffset, finish.topY + 0.05f, mz},
+                              Vector3{finish.width * 0.6f, 0.03f, 0.15f},
+                              Fade(pal.laneGlow, 0.4f * pulse * finish.glowIntensity));
+                }
+            }
+            break;
+        }
+        
+        case FinishStyle::SegmentedPylons: {
+            // Segmented pylons with lateral offset
+            const float pylonHeight = 3.5f;
+            const int pylonCount = 5;
+            for (int i = 0; i < pylonCount; ++i) {
+                const float t = static_cast<float>(i) / static_cast<float>(pylonCount - 1);
+                const float pz = finish.startZ + t * finishDepth;
+                const float offset = finish.xOffset + (i % 2 == 0 ? -0.8f : 0.8f);
+                const float pylonWidth = 0.2f;
+                const float pylonDepth = 0.25f;
+                
+                // Pylon segments (stacked)
+                const int segments = 3;
+                for (int s = 0; s < segments; ++s) {
+                    const float segY = finish.topY + static_cast<float>(s) * (pylonHeight / segments) + (pylonHeight / segments) * 0.5f;
+                    const float pulse = 0.7f + 0.3f * std::sin(simTime * 2.5f + static_cast<float>(i + s) * 0.5f);
+                    DrawCubeV(Vector3{offset, segY, pz},
+                              Vector3{pylonWidth, pylonHeight / segments * 0.9f, pylonDepth},
+                              Fade(pal.neonEdge, pulse));
+                    DrawCubeV(Vector3{offset, segY, pz},
+                              Vector3{pylonWidth * 2.5f, pylonHeight / segments * 1.1f, pylonDepth * 2.0f},
+                              Fade(pal.neonEdgeGlow, 0.25f * pulse * finish.glowIntensity));
+                }
+            }
+            
+            // Runway markers
+            if (finish.hasRunway) {
+                const int markerCount = 10;
+                for (int i = 0; i < markerCount; ++i) {
+                    const float t = static_cast<float>(i) / static_cast<float>(markerCount - 1);
+                    const float mz = finish.startZ + t * finishDepth;
+                    const float pulse = 0.75f + 0.25f * std::sin(simTime * 4.0f + t * 3.0f);
+                    DrawCubeV(Vector3{finish.xOffset, finish.topY + 0.05f, mz},
+                              Vector3{finish.width * 0.5f, 0.03f, 0.12f},
+                              Fade(pal.laneGlow, 0.35f * pulse * finish.glowIntensity));
+                }
+            }
+            break;
+        }
+        
+        case FinishStyle::PrecisionCorridor: {
+            // Tighter precision corridor with animated chevrons
+            const float chevronHeight = 2.5f;
+            const int chevronCount = 6;
+            const float chevronSpacing = finishDepth / static_cast<float>(chevronCount);
+            
+            for (int i = 0; i < chevronCount; ++i) {
+                const float cz = finish.startZ + static_cast<float>(i) * chevronSpacing + chevronSpacing * 0.5f;
+                const float chevronPhase = std::fmod(simTime * 2.0f + static_cast<float>(i) * 0.3f, 1.0f);
+                const float chevronY = finish.topY + chevronHeight * 0.5f;
+                const float chevronWidth = finish.width * (0.6f + 0.2f * chevronPhase);
+                const float chevronHalfW = chevronWidth * 0.5f;
+                
+                // Chevron shape (simplified as two angled bars forming a V)
+                // Left chevron bar
+                const Vector3 leftStart = Vector3{finish.xOffset - chevronHalfW, chevronY, cz};
+                const Vector3 leftEnd = Vector3{finish.xOffset, chevronY + chevronHeight * 0.5f, cz};
+                DrawLine3D(leftStart, leftEnd, Fade(pal.neonEdge, 0.9f * finish.glowIntensity));
+                
+                // Right chevron bar
+                const Vector3 rightStart = Vector3{finish.xOffset + chevronHalfW, chevronY, cz};
+                const Vector3 rightEnd = Vector3{finish.xOffset, chevronY + chevronHeight * 0.5f, cz};
+                DrawLine3D(rightStart, rightEnd, Fade(pal.neonEdge, 0.9f * finish.glowIntensity));
+                
+                // Glow effect
+                DrawCubeV(Vector3{finish.xOffset, chevronY + chevronHeight * 0.25f, cz},
+                          Vector3{chevronWidth * 0.3f, chevronHeight * 0.5f, 0.15f},
+                          Fade(pal.neonEdgeGlow, 0.2f * finish.glowIntensity));
+            }
+            
+            // Side barriers (tighter corridor feel)
+            DrawCubeV(Vector3{leftEdge, finish.topY + 1.0f, finishMidZActual},
+                      Vector3{0.15f, 2.0f, finishDepth}, Fade(pal.neonEdge, 0.6f));
+            DrawCubeV(Vector3{rightEdge, finish.topY + 1.0f, finishMidZActual},
+                      Vector3{0.15f, 2.0f, finishDepth}, Fade(pal.neonEdge, 0.6f));
+            
+            // Runway markers (more frequent for precision feel)
+            if (finish.hasRunway) {
+                const int markerCount = 12;
+                for (int i = 0; i < markerCount; ++i) {
+                    const float t = static_cast<float>(i) / static_cast<float>(markerCount - 1);
+                    const float mz = finish.startZ + t * finishDepth;
+                    const float pulse = 0.8f + 0.2f * std::sin(simTime * 5.0f + t * 4.0f);
+                    DrawCubeV(Vector3{finish.xOffset, finish.topY + 0.05f, mz},
+                              Vector3{finish.width * 0.4f, 0.03f, 0.1f},
+                              Fade(pal.laneGlow, 0.4f * pulse * finish.glowIntensity));
+                }
+            }
+            break;
+        }
+        
+        case FinishStyle::MultiRingPortal: {
+            // Multi-ring portal-style finale
+            const float ringHeight = 5.0f;
+            const int ringCount = static_cast<int>(finish.ringCount);
+            const float ringSpacing = finishDepth / static_cast<float>(ringCount + 1);
+            
+            for (int i = 0; i < ringCount; ++i) {
+                const float rz = finish.startZ + static_cast<float>(i + 1) * ringSpacing;
+                const float ringPhase = std::fmod(simTime * 1.5f + static_cast<float>(i) * 0.4f, 1.0f);
+                const float ringScale = 0.8f + 0.2f * std::sin(ringPhase * 3.14159f);
+                const float ringY = finish.topY + ringHeight * 0.5f;
+                
+                // Outer ring
+                const float outerRadius = finish.width * 0.5f * ringScale;
+                const int ringSegments = 16;
+                for (int s = 0; s < ringSegments; ++s) {
+                    const float angle1 = (static_cast<float>(s) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const float angle2 = (static_cast<float>(s + 1) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const Vector3 p1 = Vector3{
+                        finish.xOffset + std::cos(angle1) * outerRadius,
+                        ringY,
+                        rz + std::sin(angle1) * outerRadius * 0.3f
+                    };
+                    const Vector3 p2 = Vector3{
+                        finish.xOffset + std::cos(angle2) * outerRadius,
+                        ringY,
+                        rz + std::sin(angle2) * outerRadius * 0.3f
+                    };
+                    DrawLine3D(p1, p2, Fade(pal.neonEdge, 0.9f * finish.glowIntensity));
+                }
+                
+                // Inner ring (smaller)
+                const float innerRadius = outerRadius * 0.6f;
+                for (int s = 0; s < ringSegments; ++s) {
+                    const float angle1 = (static_cast<float>(s) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const float angle2 = (static_cast<float>(s + 1) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const Vector3 p1 = Vector3{
+                        finish.xOffset + std::cos(angle1) * innerRadius,
+                        ringY,
+                        rz + std::sin(angle1) * innerRadius * 0.3f
+                    };
+                    const Vector3 p2 = Vector3{
+                        finish.xOffset + std::cos(angle2) * innerRadius,
+                        ringY,
+                        rz + std::sin(angle2) * innerRadius * 0.3f
+                    };
+                    DrawLine3D(p1, p2, Fade(pal.neonEdgeGlow, 0.7f * finish.glowIntensity));
+                }
+                
+                // Glow sphere
+                DrawCubeV(Vector3{finish.xOffset, ringY, rz},
+                          Vector3{outerRadius * 2.0f, ringHeight * 0.8f, outerRadius * 0.6f},
+                          Fade(pal.neonEdgeGlow, 0.15f * ringScale * finish.glowIntensity));
+            }
+            
+            // Runway markers
+            if (finish.hasRunway) {
+                const int markerCount = 14;
+                for (int i = 0; i < markerCount; ++i) {
+                    const float t = static_cast<float>(i) / static_cast<float>(markerCount - 1);
+                    const float mz = finish.startZ + t * finishDepth;
+                    const float pulse = 0.85f + 0.15f * std::sin(simTime * 3.5f + t * 2.5f);
+                    DrawCubeV(Vector3{finish.xOffset, finish.topY + 0.05f, mz},
+                              Vector3{finish.width * 0.7f, 0.04f, 0.18f},
+                              Fade(pal.laneGlow, 0.5f * pulse * finish.glowIntensity));
+                }
+            }
+            break;
+        }
+        
+        default:
+            break;
+    }
+}
+
+// Render start line based on style
+void RenderStartLine(const Level& level, const Vector3& playerRenderPos, const LevelPalette& pal, const float simTime) {
+    const auto& start = level.start;
+    if (start.style == StartStyle::None) return;
+    
+    // Distance culling - only render when player is near start or behind it
+    const float startMidZ = start.gateZ;
+    if (playerRenderPos.z - startMidZ > 30.0f) return;  // Don't render if player is far past start
+    
+    const float halfW = start.width * 0.5f;
+    const float leftEdge = start.xOffset - halfW;
+    const float rightEdge = start.xOffset + halfW;
+    
+    // Base start zone glow (subtle ground glow)
+    DrawCubeV(Vector3{start.xOffset, start.topY + 0.01f, start.gateZ},
+              Vector3{start.width, 0.02f, start.zoneDepth},
+              Fade(pal.neonEdgeGlow, 0.15f * start.glowIntensity));
+    
+    // Style-specific rendering
+    switch (start.style) {
+        case StartStyle::NeonGate: {
+            // Clean/simple intro gate - two vertical posts with connecting beam
+            const float gateHeight = 3.5f;
+            const float postWidth = 0.2f;
+            const float postDepth = 0.25f;
+            
+            // Left post
+            DrawCubeV(Vector3{leftEdge, start.topY + gateHeight * 0.5f, start.gateZ},
+                      Vector3{postWidth, gateHeight, postDepth}, pal.neonEdge);
+            DrawCubeV(Vector3{leftEdge, start.topY + gateHeight * 0.5f, start.gateZ},
+                      Vector3{postWidth * 3.0f, gateHeight * 1.1f, postDepth * 2.0f},
+                      Fade(pal.neonEdgeGlow, 0.35f * start.glowIntensity));
+            
+            // Right post
+            DrawCubeV(Vector3{rightEdge, start.topY + gateHeight * 0.5f, start.gateZ},
+                      Vector3{postWidth, gateHeight, postDepth}, pal.neonEdge);
+            DrawCubeV(Vector3{rightEdge, start.topY + gateHeight * 0.5f, start.gateZ},
+                      Vector3{postWidth * 3.0f, gateHeight * 1.1f, postDepth * 2.0f},
+                      Fade(pal.neonEdgeGlow, 0.35f * start.glowIntensity));
+            
+            // Connecting beam
+            const float beamY = start.topY + gateHeight - 0.15f;
+            DrawCubeV(Vector3{start.xOffset, beamY, start.gateZ},
+                      Vector3{start.width, 0.12f, 0.15f}, pal.neonEdge);
+            DrawCubeV(Vector3{start.xOffset, beamY, start.gateZ},
+                      Vector3{start.width * 1.05f, 0.25f, 0.3f},
+                      Fade(pal.neonEdgeGlow, 0.25f * start.glowIntensity));
+            
+            // Lane stripes (scrolling effect)
+            for (int i = 0; i < start.stripeCount; ++i) {
+                const float t = static_cast<float>(i) / static_cast<float>(start.stripeCount - 1);
+                const float sz = start.gateZ - start.zoneDepth * 0.5f + t * start.zoneDepth;
+                const float pulse = 0.7f + 0.3f * std::sin(simTime * 3.0f + t * 2.0f);
+                DrawCubeV(Vector3{start.xOffset, start.topY + 0.04f, sz},
+                          Vector3{start.width * 0.5f, 0.025f, 0.1f},
+                          Fade(pal.laneGlow, 0.3f * pulse * start.glowIntensity));
+            }
+            break;
+        }
+        
+        case StartStyle::IndustrialPylons: {
+            // Denser industrial pylons with offset accents
+            const float pylonHeight = 3.0f;
+            const int pylonCount = static_cast<int>(start.zoneDepth / start.pylonSpacing) + 1;
+            
+            for (int i = 0; i < pylonCount; ++i) {
+                const float pz = start.gateZ - start.zoneDepth * 0.5f + static_cast<float>(i) * start.pylonSpacing;
+                const float offset = start.xOffset + (i % 2 == 0 ? -0.6f : 0.6f);  // Alternating offset
+                const float pylonWidth = 0.18f;
+                const float pylonDepth = 0.2f;
+                
+                // Pylon segments (stacked, industrial feel)
+                const int segments = 4;  // More segments for denser feel
+                for (int s = 0; s < segments; ++s) {
+                    const float segY = start.topY + static_cast<float>(s) * (pylonHeight / segments) + (pylonHeight / segments) * 0.5f;
+                    const float pulse = 0.65f + 0.35f * std::sin(simTime * 2.0f + static_cast<float>(i + s) * 0.4f);
+                    DrawCubeV(Vector3{offset, segY, pz},
+                              Vector3{pylonWidth, pylonHeight / segments * 0.85f, pylonDepth},
+                              Fade(pal.neonEdge, pulse));
+                    DrawCubeV(Vector3{offset, segY, pz},
+                              Vector3{pylonWidth * 2.2f, pylonHeight / segments * 1.05f, pylonDepth * 1.8f},
+                              Fade(pal.neonEdgeGlow, 0.2f * pulse * start.glowIntensity));
+                }
+            }
+            
+            // Lane stripes (more frequent for industrial feel)
+            for (int i = 0; i < start.stripeCount; ++i) {
+                const float t = static_cast<float>(i) / static_cast<float>(start.stripeCount - 1);
+                const float sz = start.gateZ - start.zoneDepth * 0.5f + t * start.zoneDepth;
+                const float pulse = 0.7f + 0.3f * std::sin(simTime * 3.5f + t * 2.5f);
+                DrawCubeV(Vector3{start.xOffset, start.topY + 0.04f, sz},
+                          Vector3{start.width * 0.45f, 0.025f, 0.08f},
+                          Fade(pal.laneGlow, 0.28f * pulse * start.glowIntensity));
+            }
+            break;
+        }
+        
+        case StartStyle::PrecisionCorridor: {
+            // Precision-focused corridor-like start
+            const float barrierHeight = 2.2f;
+            
+            // Side barriers (tighter corridor feel)
+            DrawCubeV(Vector3{leftEdge, start.topY + barrierHeight * 0.5f, start.gateZ},
+                      Vector3{0.12f, barrierHeight, start.zoneDepth}, Fade(pal.neonEdge, 0.55f));
+            DrawCubeV(Vector3{rightEdge, start.topY + barrierHeight * 0.5f, start.gateZ},
+                      Vector3{0.12f, barrierHeight, start.zoneDepth}, Fade(pal.neonEdge, 0.55f));
+            
+            // Precision markers (small chevrons)
+            const int markerCount = 6;
+            const float markerSpacing = start.zoneDepth / static_cast<float>(markerCount + 1);
+            for (int i = 0; i < markerCount; ++i) {
+                const float mz = start.gateZ - start.zoneDepth * 0.5f + static_cast<float>(i + 1) * markerSpacing;
+                const float markerPhase = std::fmod(simTime * 1.8f + static_cast<float>(i) * 0.25f, 1.0f);
+                const float markerY = start.topY + 0.3f;
+                const float markerWidth = start.width * (0.4f + 0.15f * markerPhase);
+                const float markerHalfW = markerWidth * 0.5f;
+                
+                // Small chevron marker
+                const Vector3 leftStart = Vector3{start.xOffset - markerHalfW, markerY, mz};
+                const Vector3 leftEnd = Vector3{start.xOffset, markerY + 0.2f, mz};
+                DrawLine3D(leftStart, leftEnd, Fade(pal.neonEdge, 0.85f * start.glowIntensity));
+                
+                const Vector3 rightStart = Vector3{start.xOffset + markerHalfW, markerY, mz};
+                const Vector3 rightEnd = Vector3{start.xOffset, markerY + 0.2f, mz};
+                DrawLine3D(rightStart, rightEnd, Fade(pal.neonEdge, 0.85f * start.glowIntensity));
+            }
+            
+            // Lane stripes (more frequent for precision feel)
+            for (int i = 0; i < start.stripeCount; ++i) {
+                const float t = static_cast<float>(i) / static_cast<float>(start.stripeCount - 1);
+                const float sz = start.gateZ - start.zoneDepth * 0.5f + t * start.zoneDepth;
+                const float pulse = 0.75f + 0.25f * std::sin(simTime * 4.0f + t * 3.0f);
+                DrawCubeV(Vector3{start.xOffset, start.topY + 0.04f, sz},
+                          Vector3{start.width * 0.35f, 0.025f, 0.07f},
+                          Fade(pal.laneGlow, 0.35f * pulse * start.glowIntensity));
+            }
+            break;
+        }
+        
+        case StartStyle::RingedLaunch: {
+            // Portal-esque or ringed launch frame
+            const float ringHeight = 4.5f;
+            const int ringCount = static_cast<int>(start.ringCount);
+            const float ringSpacing = start.zoneDepth / static_cast<float>(ringCount + 1);
+            
+            for (int i = 0; i < ringCount; ++i) {
+                const float rz = start.gateZ - start.zoneDepth * 0.5f + static_cast<float>(i + 1) * ringSpacing;
+                const float ringPhase = std::fmod(simTime * 1.2f + static_cast<float>(i) * 0.35f, 1.0f);
+                const float ringScale = 0.75f + 0.25f * std::sin(ringPhase * 3.14159f);
+                const float ringY = start.topY + ringHeight * 0.5f;
+                
+                // Outer ring
+                const float outerRadius = start.width * 0.5f * ringScale;
+                const int ringSegments = 16;
+                for (int s = 0; s < ringSegments; ++s) {
+                    const float angle1 = (static_cast<float>(s) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const float angle2 = (static_cast<float>(s + 1) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const Vector3 p1 = Vector3{
+                        start.xOffset + std::cos(angle1) * outerRadius,
+                        ringY,
+                        rz + std::sin(angle1) * outerRadius * 0.25f
+                    };
+                    const Vector3 p2 = Vector3{
+                        start.xOffset + std::cos(angle2) * outerRadius,
+                        ringY,
+                        rz + std::sin(angle2) * outerRadius * 0.25f
+                    };
+                    DrawLine3D(p1, p2, Fade(pal.neonEdge, 0.85f * start.glowIntensity));
+                }
+                
+                // Inner ring (smaller)
+                const float innerRadius = outerRadius * 0.55f;
+                for (int s = 0; s < ringSegments; ++s) {
+                    const float angle1 = (static_cast<float>(s) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const float angle2 = (static_cast<float>(s + 1) / static_cast<float>(ringSegments)) * 2.0f * 3.14159f;
+                    const Vector3 p1 = Vector3{
+                        start.xOffset + std::cos(angle1) * innerRadius,
+                        ringY,
+                        rz + std::sin(angle1) * innerRadius * 0.25f
+                    };
+                    const Vector3 p2 = Vector3{
+                        start.xOffset + std::cos(angle2) * innerRadius,
+                        ringY,
+                        rz + std::sin(angle2) * innerRadius * 0.25f
+                    };
+                    DrawLine3D(p1, p2, Fade(pal.neonEdgeGlow, 0.65f * start.glowIntensity));
+                }
+                
+                // Glow sphere
+                DrawCubeV(Vector3{start.xOffset, ringY, rz},
+                          Vector3{outerRadius * 1.8f, ringHeight * 0.7f, outerRadius * 0.5f},
+                          Fade(pal.neonEdgeGlow, 0.12f * ringScale * start.glowIntensity));
+            }
+            
+            // Lane stripes
+            for (int i = 0; i < start.stripeCount; ++i) {
+                const float t = static_cast<float>(i) / static_cast<float>(start.stripeCount - 1);
+                const float sz = start.gateZ - start.zoneDepth * 0.5f + t * start.zoneDepth;
+                const float pulse = 0.8f + 0.2f * std::sin(simTime * 3.0f + t * 2.0f);
+                DrawCubeV(Vector3{start.xOffset, start.topY + 0.04f, sz},
+                          Vector3{start.width * 0.6f, 0.03f, 0.12f},
+                          Fade(pal.laneGlow, 0.4f * pulse * start.glowIntensity));
+            }
+            break;
+        }
+        
+        default:
+            break;
+    }
+}
 }  // namespace
 
 void RenderFrame(Game& game, const float alpha, const float renderDt) {
@@ -1047,47 +1509,121 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
 
             const float segEndZ = seg.startZ + seg.length;
             const float halfW = seg.width * 0.5f;
+            
+            // Apply variant-based modifications
+            const float visualHeight = cfg::kPlatformHeight * seg.heightScale;
+            Color platformSideCol = ApplyColorTint(pal.platformSide, seg.colorTint);
+            Color platformTopCol = ApplyColorTint(pal.platformTop, seg.colorTint);
+            Color platformWireCol = ApplyColorTint(pal.platformWire, seg.colorTint);
+            Color neonEdgeCol = pal.neonEdge;
+            Color neonGlowCol = pal.neonEdgeGlow;
+            
+            // Variant-specific adjustments
+            float wireAlpha = 0.5f;
+            float glowIntensity = 0.15f;
+            bool drawGrid = true;
+            
+            switch (seg.variantIndex) {
+                case 0: // Standard - no changes
+                    break;
+                case 1: // Thin - reduced wireframe, subtle
+                    wireAlpha = 0.3f;
+                    break;
+                case 2: // Thick - stronger wireframe
+                    wireAlpha = 0.7f;
+                    break;
+                case 3: // Wide - emphasize width visually
+                    platformSideCol = ApplyColorTint(pal.platformSide, 1); // Brighter
+                    break;
+                case 4: // Narrow - darker, more compact
+                    platformSideCol = Color{
+                        static_cast<unsigned char>(platformSideCol.r * 0.8f),
+                        static_cast<unsigned char>(platformSideCol.g * 0.8f),
+                        static_cast<unsigned char>(platformSideCol.b * 0.8f),
+                        255
+                    };
+                    break;
+                case 5: // Glowing - brighter edges, more glow
+                    glowIntensity = 0.3f;
+                    neonEdgeCol = Color{
+                        static_cast<unsigned char>(std::min(255, pal.neonEdge.r + 40)),
+                        static_cast<unsigned char>(std::min(255, pal.neonEdge.g + 40)),
+                        static_cast<unsigned char>(std::min(255, pal.neonEdge.b + 40)),
+                        255
+                    };
+                    break;
+                case 6: // Matte - no wireframe, no grid
+                    wireAlpha = 0.0f;
+                    drawGrid = false;
+                    platformSideCol = Color{
+                        static_cast<unsigned char>(platformSideCol.r * 0.7f),
+                        static_cast<unsigned char>(platformSideCol.g * 0.7f),
+                        static_cast<unsigned char>(platformSideCol.b * 0.7f),
+                        255
+                    };
+                    break;
+                case 7: // Striped - will add stripes below
+                    break;
+            }
 
             // Platform body.
-            DrawCubeV(Vector3{seg.xOffset, seg.topY - cfg::kPlatformHeight * 0.5f, segMidZ},
-                      Vector3{seg.width, cfg::kPlatformHeight, seg.length}, pal.platformSide);
+            DrawCubeV(Vector3{seg.xOffset, seg.topY - visualHeight * 0.5f, segMidZ},
+                      Vector3{seg.width, visualHeight, seg.length}, platformSideCol);
             // Top surface.
             DrawCubeV(Vector3{seg.xOffset, seg.topY - 0.01f, segMidZ},
-                      Vector3{seg.width, 0.02f, seg.length}, pal.platformTop);
-            // Wireframe.
-            DrawCubeWiresV(Vector3{seg.xOffset, seg.topY - cfg::kPlatformHeight * 0.5f, segMidZ},
-                           Vector3{seg.width, cfg::kPlatformHeight, seg.length}, Fade(pal.platformWire, 0.5f));
+                      Vector3{seg.width, 0.02f, seg.length}, platformTopCol);
+            
+            // Wireframe (if variant allows)
+            if (wireAlpha > 0.0f) {
+                DrawCubeWiresV(Vector3{seg.xOffset, seg.topY - visualHeight * 0.5f, segMidZ},
+                               Vector3{seg.width, visualHeight, seg.length}, Fade(platformWireCol, wireAlpha));
+            }
 
             // Neon edges.
             const float leftEdge = seg.xOffset - halfW;
             const float rightEdge = seg.xOffset + halfW;
             const float edgeY = seg.topY + cfg::kNeonEdgeHeight * 0.5f;
             DrawCubeV(Vector3{leftEdge, edgeY, segMidZ},
-                      Vector3{cfg::kNeonEdgeWidth, cfg::kNeonEdgeHeight, seg.length}, pal.neonEdge);
+                      Vector3{cfg::kNeonEdgeWidth, cfg::kNeonEdgeHeight, seg.length}, neonEdgeCol);
             DrawCubeV(Vector3{rightEdge, edgeY, segMidZ},
-                      Vector3{cfg::kNeonEdgeWidth, cfg::kNeonEdgeHeight, seg.length}, pal.neonEdge);
+                      Vector3{cfg::kNeonEdgeWidth, cfg::kNeonEdgeHeight, seg.length}, neonEdgeCol);
             DrawCubeV(Vector3{leftEdge, edgeY, segMidZ},
                       Vector3{cfg::kNeonEdgeWidth * 3.0f, cfg::kNeonEdgeHeight * 2.5f, seg.length},
-                      Fade(pal.neonEdgeGlow, 0.15f));
+                      Fade(neonGlowCol, glowIntensity));
             DrawCubeV(Vector3{rightEdge, edgeY, segMidZ},
                       Vector3{cfg::kNeonEdgeWidth * 3.0f, cfg::kNeonEdgeHeight * 2.5f, seg.length},
-                      Fade(pal.neonEdgeGlow, 0.15f));
-
-            // Grid lines on this segment.
-            const float sGuideY = seg.topY + 0.02f;
-            for (int gi = 0; gi < cfg::kGridLongitudinalCount; ++gi) {
-                const float t = static_cast<float>(gi) / static_cast<float>(cfg::kGridLongitudinalCount - 1);
-                const float gx = seg.xOffset - halfW + t * seg.width;
-                DrawLine3D(Vector3{gx, sGuideY, seg.startZ}, Vector3{gx, sGuideY, segEndZ}, Fade(pal.gridLine, 0.3f));
+                      Fade(neonGlowCol, glowIntensity));
+            
+            // Striped variant - add alternating color bands
+            if (seg.variantIndex == 7) {
+                const int stripeCount = 8;
+                for (int st = 0; st < stripeCount; ++st) {
+                    const float t = static_cast<float>(st) / static_cast<float>(stripeCount);
+                    const float sz = seg.startZ + t * seg.length;
+                    const bool alt = (st % 2 == 0);
+                    Color stripeCol = alt ? platformTopCol : ApplyColorTint(platformTopCol, 1);
+                    DrawCubeV(Vector3{seg.xOffset, seg.topY + 0.01f, sz},
+                              Vector3{seg.width, 0.015f, seg.length / stripeCount}, Fade(stripeCol, 0.6f));
+                }
             }
-            // Lateral grid (only near player for perf).
-            if (std::fabs(segMidZ - playerRenderPos.z) < 30.0f) {
-                const float latPhase = std::fmod(playerRenderPos.z, cfg::kGridLateralSpacing);
-                for (int li = -2; li < 14; ++li) {
-                    const float lz = playerRenderPos.z - 6.0f + static_cast<float>(li) * cfg::kGridLateralSpacing - latPhase;
-                    if (lz < seg.startZ || lz > segEndZ) continue;
-                    DrawLine3D(Vector3{seg.xOffset - halfW, sGuideY, lz},
-                               Vector3{seg.xOffset + halfW, sGuideY, lz}, Fade(pal.gridLine, 0.2f));
+
+            // Grid lines on this segment (if variant allows)
+            if (drawGrid) {
+                const float sGuideY = seg.topY + 0.02f;
+                for (int gi = 0; gi < cfg::kGridLongitudinalCount; ++gi) {
+                    const float t = static_cast<float>(gi) / static_cast<float>(cfg::kGridLongitudinalCount - 1);
+                    const float gx = seg.xOffset - halfW + t * seg.width;
+                    DrawLine3D(Vector3{gx, sGuideY, seg.startZ}, Vector3{gx, sGuideY, segEndZ}, Fade(pal.gridLine, 0.3f));
+                }
+                // Lateral grid (only near player for perf).
+                if (std::fabs(segMidZ - playerRenderPos.z) < 30.0f) {
+                    const float latPhase = std::fmod(playerRenderPos.z, cfg::kGridLateralSpacing);
+                    for (int li = -2; li < 14; ++li) {
+                        const float lz = playerRenderPos.z - 6.0f + static_cast<float>(li) * cfg::kGridLateralSpacing - latPhase;
+                        if (lz < seg.startZ || lz > segEndZ) continue;
+                        DrawLine3D(Vector3{seg.xOffset - halfW, sGuideY, lz},
+                                   Vector3{seg.xOffset + halfW, sGuideY, lz}, Fade(pal.gridLine, 0.2f));
+                    }
                 }
             }
         }
@@ -1096,15 +1632,90 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         for (int oi = 0; oi < lv->obstacleCount; ++oi) {
             const auto& ob = lv->obstacles[oi];
             if (std::fabs(ob.z - playerRenderPos.z) > 60.0f) continue;
-            const Vector3 obCenter = Vector3{ob.x, ob.y + ob.sizeY * 0.5f, ob.z};
-            const Vector3 obSize = Vector3{ob.sizeX, ob.sizeY, ob.sizeZ};
+            
             const Color obCol = GetDecoCubeColor(pal, ob.colorIndex);
-            DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
-            DrawCubeWiresV(obCenter, obSize, obCol);
-            // Glow on ground.
+            const Vector3 obCenter = Vector3{ob.x, ob.y + ob.sizeY * 0.5f, ob.z};
+            
+            // Apply rotation if needed (for now, rotation is stored but we'll use it for visual variety)
+            // Note: Raylib's DrawCubeV doesn't support rotation, so we'll vary the shape instead
+            
+            switch (ob.shape) {
+                case ObstacleShape::Cube: {
+                    // Standard cube
+                    const Vector3 obSize = Vector3{ob.sizeX, ob.sizeY, ob.sizeZ};
+                    DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
+                    DrawCubeWiresV(obCenter, obSize, obCol);
+                    break;
+                }
+                case ObstacleShape::Cylinder: {
+                    // Cylinder approximation: use cube with rounded top/bottom effect
+                    const Vector3 obSize = Vector3{ob.sizeX, ob.sizeY, ob.sizeZ};
+                    // Main body
+                    DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
+                    // Rounded caps (smaller cubes on top and bottom)
+                    DrawCubeV(Vector3{ob.x, ob.y + ob.sizeY - ob.sizeX * 0.3f, ob.z},
+                              Vector3{ob.sizeX * 0.9f, ob.sizeX * 0.3f, ob.sizeZ * 0.9f}, Fade(obCol, 0.5f));
+                    DrawCubeV(Vector3{ob.x, ob.y + ob.sizeX * 0.3f, ob.z},
+                              Vector3{ob.sizeX * 0.9f, ob.sizeX * 0.3f, ob.sizeZ * 0.9f}, Fade(obCol, 0.5f));
+                    DrawCubeWiresV(obCenter, obSize, obCol);
+                    break;
+                }
+                case ObstacleShape::Pyramid: {
+                    // Pyramid: base cube with smaller cube on top
+                    const float baseHeight = ob.sizeY * 0.7f;
+                    const Vector3 baseSize = Vector3{ob.sizeX, baseHeight, ob.sizeZ};
+                    const Vector3 baseCenter = Vector3{ob.x, ob.y + baseHeight * 0.5f, ob.z};
+                    DrawCubeV(baseCenter, baseSize, Fade(obCol, 0.4f));
+                    // Top pyramid point (smaller cube)
+                    const float topSize = ob.sizeX * 0.5f;
+                    const float topHeight = ob.sizeY * 0.3f;
+                    DrawCubeV(Vector3{ob.x, ob.y + baseHeight + topHeight * 0.5f, ob.z},
+                              Vector3{topSize, topHeight, topSize}, Fade(obCol, 0.5f));
+                    DrawCubeWiresV(baseCenter, baseSize, obCol);
+                    break;
+                }
+                case ObstacleShape::Spike: {
+                    // Tall thin spike
+                    const Vector3 obSize = Vector3{ob.sizeX * 0.6f, ob.sizeY, ob.sizeZ * 0.6f};
+                    DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
+                    // Pointy top
+                    const float topSize = ob.sizeX * 0.3f;
+                    DrawCubeV(Vector3{ob.x, ob.y + ob.sizeY - topSize * 0.5f, ob.z},
+                              Vector3{topSize, topSize, topSize}, Fade(obCol, 0.6f));
+                    DrawCubeWiresV(obCenter, obSize, obCol);
+                    break;
+                }
+                case ObstacleShape::Wall: {
+                    // Wide and flat
+                    const Vector3 obSize = Vector3{ob.sizeX, ob.sizeY * 0.6f, ob.sizeZ};
+                    const Vector3 wallCenter = Vector3{ob.x, ob.y + ob.sizeY * 0.3f, ob.z};
+                    DrawCubeV(wallCenter, obSize, Fade(obCol, 0.4f));
+                    DrawCubeWiresV(wallCenter, obSize, obCol);
+                    break;
+                }
+                case ObstacleShape::Sphere: {
+                    // Sphere approximation: use cube with slightly rounded appearance
+                    // Use the average of dimensions for a more spherical look
+                    const float avgSize = (ob.sizeX + ob.sizeY + ob.sizeZ) / 3.0f;
+                    const Vector3 obSize = Vector3{avgSize, avgSize, avgSize};
+                    DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
+                    // Add a subtle glow effect
+                    DrawCubeV(obCenter, Vector3{avgSize * 1.1f, avgSize * 1.1f, avgSize * 1.1f}, Fade(obCol, 0.15f));
+                    DrawCubeWiresV(obCenter, obSize, obCol);
+                    break;
+                }
+            }
+            
+            // Glow on ground (for all shapes)
             DrawCubeV(Vector3{ob.x, ob.y + 0.02f, ob.z},
                       Vector3{ob.sizeX * 1.5f, 0.01f, ob.sizeZ * 1.5f}, Fade(obCol, 0.15f));
         }
+        
+        // ---- Start line ----
+        RenderStartLine(*lv, playerRenderPos, pal, simTime);
+        
+        // ---- Finish line ----
+        RenderFinishLine(*lv, playerRenderPos, pal, simTime);
     }
 
     // ---- Scrolling track bands (motion feel, drawn on nearest segment) ----

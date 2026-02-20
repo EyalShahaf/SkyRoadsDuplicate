@@ -471,6 +471,216 @@ bool TestCalculateLeaderboardStatsEmpty() {
     return true;
 }
 
+bool TestFinishZoneCompletion() {
+    Game game{};
+    InitGame(game, 42u);
+    game.level = &GetLevel1();
+    game.currentLevelIndex = 1;
+    
+    // Move player to just before finish zone
+    const float finishEndZ = game.level->finish.endZ;
+    game.player.position.z = finishEndZ - 1.0f;
+    game.player.position.y = cfg::kPlayerHalfHeight;
+    game.player.grounded = true;
+    game.player.velocity.z = cfg::kForwardSpeed;
+    
+    // Step simulation - should not complete yet
+    SimStep(game, cfg::kFixedDt);
+    if (game.levelComplete || game.runOver) return false;
+    
+    // Move player past finish zone
+    game.player.position.z = finishEndZ + 0.1f;
+    SimStep(game, cfg::kFixedDt);
+    
+    // Should complete now
+    if (!game.levelComplete) return false;
+    if (!game.runOver) return false;
+    if (game.deathCause != 3) return false;  // deathCause 3 = level_complete
+    
+    return true;
+}
+
+bool TestFinishZoneNoPrematureCompletion() {
+    Game game{};
+    InitGame(game, 42u);
+    game.level = &GetLevel1();
+    game.currentLevelIndex = 1;
+    
+    // Move player to start of finish zone (but not past end)
+    const float finishStartZ = game.level->finish.startZ;
+    const float finishEndZ = game.level->finish.endZ;
+    game.player.position.z = finishStartZ + (finishEndZ - finishStartZ) * 0.5f;  // Middle of finish zone
+    game.player.position.y = cfg::kPlayerHalfHeight;
+    game.player.grounded = true;
+    game.player.velocity.z = cfg::kForwardSpeed;
+    
+    // Step simulation - should not complete yet (not past endZ)
+    SimStep(game, cfg::kFixedDt);
+    if (game.levelComplete || game.runOver) return false;
+    
+    return true;
+}
+
+bool TestFinishZoneDeterministic() {
+    Game a{};
+    Game b{};
+    InitGame(a, 12345u);
+    InitGame(b, 12345u);
+    a.level = &GetLevel1();
+    b.level = &GetLevel1();
+    a.currentLevelIndex = 1;
+    b.currentLevelIndex = 1;
+    
+    // Position both players identically just before finish zone
+    const float finishEndZ = a.level->finish.endZ;
+    a.player.position.z = finishEndZ - 5.0f;
+    b.player.position.z = finishEndZ - 5.0f;
+    a.player.position.y = cfg::kPlayerHalfHeight;
+    b.player.position.y = cfg::kPlayerHalfHeight;
+    a.player.grounded = true;
+    b.player.grounded = true;
+    a.player.velocity.z = cfg::kForwardSpeed;
+    b.player.velocity.z = cfg::kForwardSpeed;
+    
+    // Run identical simulation steps
+    const int steps = 200;
+    for (int i = 0; i < steps; ++i) {
+        SimStep(a, cfg::kFixedDt);
+        SimStep(b, cfg::kFixedDt);
+        
+        // Both should complete at the same time
+        if (a.levelComplete != b.levelComplete) return false;
+        if (a.runOver != b.runOver) return false;
+        
+        if (a.levelComplete) break;  // Stop once completion occurs
+    }
+    
+    // Both should have completed
+    if (!a.levelComplete || !b.levelComplete) return false;
+    
+    // Completion timing should be identical (same simTicks)
+    if (a.simTicks != b.simTicks) return false;
+    
+    return true;
+}
+
+bool TestFinishZonePlaceholderLevel() {
+    Game game{};
+    InitGame(game, 42u);
+    game.level = &GetLevelByIndex(5);  // Unimplemented level (placeholder)
+    game.currentLevelIndex = 5;
+    
+    // Placeholder levels should fall back to totalLength check
+    game.player.position.z = game.level->totalLength - 1.0f;
+    game.player.position.y = cfg::kPlayerHalfHeight;
+    game.player.grounded = true;
+    game.player.velocity.z = cfg::kForwardSpeed;
+    
+    // Should not complete yet
+    SimStep(game, cfg::kFixedDt);
+    if (game.levelComplete || game.runOver) return false;
+    
+    // Move past totalLength
+    game.player.position.z = game.level->totalLength + 0.1f;
+    SimStep(game, cfg::kFixedDt);
+    
+    // Should complete (fallback behavior)
+    if (!game.levelComplete) return false;
+    
+    return true;
+}
+
+bool TestStartZoneSpawnPosition() {
+    Game game{};
+    InitGame(game, 42u);
+    game.level = &GetLevel1();
+    game.currentLevelIndex = 1;
+    
+    // Reset run to use start zone spawn
+    ResetRun(game, 42u, 1);
+    
+    // Spawn Z should come from start zone
+    const float expectedSpawnZ = game.level->start.spawnZ;
+    if (!NearlyEqual(game.player.position.z, expectedSpawnZ, 0.01f)) return false;
+    
+    // Player should be grounded and at correct height
+    if (!game.player.grounded) return false;
+    if (!NearlyEqual(game.player.position.y, cfg::kPlayerHalfHeight, 0.01f)) return false;
+    
+    return true;
+}
+
+bool TestStartZoneSpawnSafe() {
+    Game game{};
+    InitGame(game, 42u);
+    game.level = &GetLevel1();
+    game.currentLevelIndex = 1;
+    
+    ResetRun(game, 42u, 1);
+    
+    // Player should be on a valid segment (not falling)
+    const int segIdx = FindSegmentUnder(*game.level, game.player.position.z, game.player.position.x, cfg::kPlayerWidth * 0.5f);
+    if (segIdx < 0) return false;  // Should be on a segment
+    
+    // Player should not collide with obstacles at spawn
+    if (CheckObstacleCollision(*game.level, game.player.position,
+                               cfg::kPlayerWidth * 0.45f,
+                               cfg::kPlayerHalfHeight * 0.9f,
+                               cfg::kPlayerDepth * 0.45f)) {
+        return false;  // Should not spawn in obstacle
+    }
+    
+    // Run a few steps - player should remain safe
+    for (int i = 0; i < 10; ++i) {
+        SimStep(game, cfg::kFixedDt);
+        if (game.runOver && !game.levelComplete) return false;  // Should not die immediately
+    }
+    
+    return true;
+}
+
+bool TestStartZoneDeterministic() {
+    Game a{};
+    Game b{};
+    InitGame(a, 12345u);
+    InitGame(b, 12345u);
+    
+    // Both should spawn at same position with same seed
+    ResetRun(a, 12345u, 1);
+    ResetRun(b, 12345u, 1);
+    
+    if (!NearlyEqual(a.player.position.x, b.player.position.x, 0.01f)) return false;
+    if (!NearlyEqual(a.player.position.y, b.player.position.y, 0.01f)) return false;
+    if (!NearlyEqual(a.player.position.z, b.player.position.z, 0.01f)) return false;
+    if (a.player.grounded != b.player.grounded) return false;
+    
+    // Run a few steps - should remain deterministic
+    for (int i = 0; i < 20; ++i) {
+        SimStep(a, cfg::kFixedDt);
+        SimStep(b, cfg::kFixedDt);
+        
+        if (!NearlyEqual(a.player.position.x, b.player.position.x, 0.01f)) return false;
+        if (!NearlyEqual(a.player.position.y, b.player.position.y, 0.01f)) return false;
+        if (!NearlyEqual(a.player.position.z, b.player.position.z, 0.01f)) return false;
+    }
+    
+    return true;
+}
+
+bool TestStartZonePlaceholderLevel() {
+    Game game{};
+    InitGame(game, 42u);
+    game.level = &GetLevelByIndex(5);  // Unimplemented level (placeholder)
+    game.currentLevelIndex = 5;
+    
+    ResetRun(game, 42u, 5);
+    
+    // Placeholder levels should fall back to default spawn Z (2.0f)
+    if (!NearlyEqual(game.player.position.z, 2.0f, 0.01f)) return false;
+    
+    return true;
+}
+
 }  // namespace
 
 int main() {
@@ -506,6 +716,14 @@ int main() {
     run("calculate_leaderboard_stats_qualifying", TestCalculateLeaderboardStatsQualifying());
     run("calculate_leaderboard_stats_non_qualifying", TestCalculateLeaderboardStatsNonQualifying());
     run("calculate_leaderboard_stats_empty", TestCalculateLeaderboardStatsEmpty());
+    run("finish_zone_completion", TestFinishZoneCompletion());
+    run("finish_zone_no_premature_completion", TestFinishZoneNoPrematureCompletion());
+    run("finish_zone_deterministic", TestFinishZoneDeterministic());
+    run("finish_zone_placeholder_level", TestFinishZonePlaceholderLevel());
+    run("start_zone_spawn_position", TestStartZoneSpawnPosition());
+    run("start_zone_spawn_safe", TestStartZoneSpawnSafe());
+    run("start_zone_deterministic", TestStartZoneDeterministic());
+    run("start_zone_placeholder_level", TestStartZonePlaceholderLevel());
 
     return (failed == 0) ? 0 : 1;
 }

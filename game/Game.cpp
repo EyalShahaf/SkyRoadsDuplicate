@@ -31,10 +31,14 @@ void ResetRun(Game& game, const uint32_t seed, int levelIndex) {
     game.currentStage = GetStageFromLevelIndex(levelIndex);
     game.isPlaceholderLevel = !IsLevelImplemented(levelIndex);
     
+    // Set level using GetLevelByIndex (needed before getting spawn position)
+    game.level = &GetLevelByIndex(levelIndex);
+    
     uint32_t spawnState = game.runSeed;
     const float spawnX = (core::NextFloat01(spawnState) - 0.5f) * 1.5f;
+    const float spawnZ = GetSpawnZ(*game.level);
 
-    game.player.position = Vector3{spawnX, cfg::kPlayerHalfHeight, 2.0f};
+    game.player.position = Vector3{spawnX, cfg::kPlayerHalfHeight, spawnZ};
     game.player.velocity = Vector3{0.0f, 0.0f, cfg::kForwardSpeed};
     game.player.grounded = true;
     game.player.jumpBufferTimer = 0.0f;
@@ -55,8 +59,6 @@ void ResetRun(Game& game, const uint32_t seed, int levelIndex) {
     game.difficultyT = 0.0f;
     game.diffSpeedBonus = 0.0f;
     game.hazardProbability = cfg::kDiffHazardProbMin;
-    // Set level using GetLevelByIndex
-    game.level = &GetLevelByIndex(levelIndex);
     game.levelComplete = false;
     game.deathCause = 0;
 
