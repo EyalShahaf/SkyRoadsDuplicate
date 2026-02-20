@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <cstdio>
 
 // Lightweight per-frame heap allocation counter.

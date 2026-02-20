@@ -136,10 +136,10 @@ void ReadInput(Game& game) {
     // Exit confirmation screen.
     if (game.screen == GameScreen::ExitConfirm) {
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            game.exitConfirmSelection = (game.exitConfirmSelection + 1) % 2;
+            game.exitConfirmSelection = (game.exitConfirmSelection - 1 + 2) % 2;  // Go up (decrement)
         }
         if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            game.exitConfirmSelection = (game.exitConfirmSelection + 1) % 2;
+            game.exitConfirmSelection = (game.exitConfirmSelection + 1) % 2;  // Go down (increment)
         }
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
             if (game.exitConfirmSelection == 1) {
