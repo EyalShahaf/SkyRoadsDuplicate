@@ -104,6 +104,8 @@ const Level& GetLevel1();
 const Level& GetLevel2();
 const Level& GetLevel3();
 const Level& GetLevel4();
+const Level& GetLevel5();
+const Level& GetLevel6();
 
 // Get level by index (1-30). Returns placeholder for unimplemented levels.
 const Level& GetLevelByIndex(int levelIndex);

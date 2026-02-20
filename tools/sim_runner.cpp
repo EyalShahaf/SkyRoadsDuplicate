@@ -388,6 +388,7 @@ int main(int argc, char* argv[]) {
     if (args.json) {
         std::printf("{\n");
         std::printf("  \"seed\": \"0x%08X\",\n", args.seed);
+        std::printf("  \"level\": %d,\n", args.levelIndex);
         std::printf("  \"bot\": \"%s\",\n", BotStyleName(args.botStyle));
         std::printf("  \"ticks_run\": %d,\n", ticksRun);
         std::printf("  \"ticks_max\": %d,\n", args.maxTicks);
@@ -403,13 +404,14 @@ int main(int argc, char* argv[]) {
         std::printf("  \"perf_ms_per_1k\": %.3f\n", perfMsPer1k);
         std::printf("}\n");
     } else if (args.quiet) {
-        std::printf("seed=0x%08X  status=%-8s  score=%-10.0f  dist=%-8.1f  time=%-7.2fs  diff=%.3f  perf=%.3fms/1k\n",
-                    args.seed,
+        std::printf("seed=0x%08X  level=%d  status=%-8s  score=%-10.0f  dist=%-8.1f  time=%-7.2fs  diff=%.3f  perf=%.3fms/1k\n",
+                    args.seed, args.levelIndex,
                     survived ? "SURVIVED" : "DIED",
                     score, distance, simTime, difficulty, perfMsPer1k);
     } else {
         std::printf("=== SkyRoads Headless Sim Runner ===\n");
         std::printf("seed:       0x%08X\n", args.seed);
+        std::printf("level:      %d\n", args.levelIndex);
         std::printf("bot:        %s\n", BotStyleName(args.botStyle));
         std::printf("ticks:      %d / %d\n", ticksRun, args.maxTicks);
         std::printf("sim_time:   %.2f s\n", simTime);

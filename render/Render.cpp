@@ -419,6 +419,8 @@ bool g_texturesLoaded = false;
 Texture2D g_inputTilemap{};
 Texture2D g_planetTextures[3]{};  // planet00, planet01, planet03
 Texture2D g_hudReferenceImage{};  // Reference image for HUD assets
+Texture2D g_backgroundTextures[4]{};  // Background assets from background_assets/
+bool g_backgroundTexturesLoaded = false;
 
 // --- Engine exhaust pool (render-side, preallocated) ---
 
@@ -537,6 +539,21 @@ void InitRenderer() {
             SetTextureFilter(g_hudReferenceImage, TEXTURE_FILTER_POINT);  // Pixel-perfect
         }
         
+        // Load background textures
+        const char* backgroundPaths[] = {
+            "background_assets/4k-double-parallax-retro-abstract-footage-271209015_iconl.webp",
+            "background_assets/PBhKWrGRgaxKia_FMnR4ZEg0CQ3WAxSz1QOc-UPEfiMrffQD0uR1EO1zuDrDYb9Tbw3mqQwfMHonjoYB_kEfrA7M3tkCfxnyAqiBp0pD1p0.jpeg",
+            "background_assets/kvj7sm6sLNDy-1PHO2VAShRFDEWruuQUBM5lhrVzuTgfuBfA_Taw0gdcC99A07b5Q4Mye6_FYcIvdZliziHBTgX_F-aLWgL2JNG5iDNWQ8E.jpeg",
+            "background_assets/IrPw9NZSWxhr5-Cvrk-BCDe_Bvziekmm9kxtUE9BgId2_TUnibgX3nS91MPn9URl0ZcVcFyoCvLXVH7gZfyaEVNJunx_b7JSTNBCFhVHRLw.jpeg"
+        };
+        for (int i = 0; i < 4; ++i) {
+            if (assets::Exists(backgroundPaths[i])) {
+                g_backgroundTextures[i] = LoadTexture(assets::Path(backgroundPaths[i]));
+                SetTextureFilter(g_backgroundTextures[i], TEXTURE_FILTER_BILINEAR);
+                g_backgroundTexturesLoaded = true;
+            }
+        }
+        
         g_texturesLoaded = true;
     }
 }
@@ -553,6 +570,14 @@ void CleanupRenderer() {
         }
         if (g_hudReferenceImage.id != 0) {
             UnloadTexture(g_hudReferenceImage);
+        }
+        if (g_backgroundTexturesLoaded) {
+            for (int i = 0; i < 4; ++i) {
+                if (g_backgroundTextures[i].id != 0) {
+                    UnloadTexture(g_backgroundTextures[i]);
+                }
+            }
+            g_backgroundTexturesLoaded = false;
         }
         g_texturesLoaded = false;
     }
@@ -784,6 +809,73 @@ void DrawBlockyText(const char* text, int x, int y, int fontSize, Color color) {
     // Use default font but draw at smaller size for blocky effect, then scale up
     // For now, just use regular text but with appropriate sizing
     DrawText(text, x, y, fontSize, color);
+}
+
+// Draw background texture with grid overlay
+void DrawBackgroundWithGrid(int textureIndex, float scrollOffset, const LevelPalette& pal, int width, int height, float alpha = 1.0f) {
+    if (!g_backgroundTexturesLoaded || textureIndex < 0 || textureIndex >= 4 || g_backgroundTextures[textureIndex].id == 0) {
+        // If no texture, just draw grid
+        const int gridSpacing = 40;
+        const Color gridColor = Fade(pal.gridLine, 0.4f * alpha);
+        
+        // Vertical grid lines
+        for (int x = 0; x <= width; x += gridSpacing) {
+            DrawLine(x, 0, x, height, gridColor);
+        }
+        
+        // Horizontal grid lines
+        for (int y = 0; y <= height; y += gridSpacing) {
+            DrawLine(0, y, width, y, gridColor);
+        }
+        
+        // Diagonal grid lines for grip pattern (subtle)
+        const int diagSpacing = 60;
+        const Color diagColor = Fade(pal.gridLine, 0.15f * alpha);
+        for (int i = -height; i < width + height; i += diagSpacing) {
+            DrawLine(i, 0, i + height, height, diagColor);
+            DrawLine(i, 0, i - height, height, diagColor);
+        }
+        return;
+    }
+    
+    const Texture2D& tex = g_backgroundTextures[textureIndex];
+    
+    // Draw background texture (tiled/scrolling)
+    const float texScale = static_cast<float>(height) / static_cast<float>(tex.height);
+    const float texW = static_cast<float>(tex.width) * texScale;
+    const float scrollX = std::fmod(scrollOffset, texW);
+    
+    // Draw tiled background
+    for (int x = -1; x <= 1; ++x) {
+        const float drawX = scrollX + static_cast<float>(x) * texW;
+        DrawTexturePro(tex, 
+                      Rectangle{0.0f, 0.0f, static_cast<float>(tex.width), static_cast<float>(tex.height)},
+                      Rectangle{drawX, 0.0f, texW, static_cast<float>(height)},
+                      Vector2{0.0f, 0.0f}, 0.0f, 
+                      Color{255, 255, 255, static_cast<unsigned char>(255 * alpha)});
+    }
+    
+    // Draw grid overlay
+    const int gridSpacing = 40;
+    const Color gridColor = Fade(pal.gridLine, 0.4f * alpha);
+    
+    // Vertical grid lines
+    for (int x = 0; x <= width; x += gridSpacing) {
+        DrawLine(x, 0, x, height, gridColor);
+    }
+    
+    // Horizontal grid lines
+    for (int y = 0; y <= height; y += gridSpacing) {
+        DrawLine(0, y, width, y, gridColor);
+    }
+    
+    // Diagonal grid lines for grip pattern (subtle)
+    const int diagSpacing = 60;
+    const Color diagColor = Fade(pal.gridLine, 0.15f * alpha);
+    for (int i = -height; i < width + height; i += diagSpacing) {
+        DrawLine(i, 0, i + height, height, diagColor);
+        DrawLine(i, 0, i - height, height, diagColor);
+    }
 }
 
 // Render retro cockpit HUD
@@ -1432,21 +1524,47 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
     BeginDrawing();
     ClearBackground(BLACK);
 
-    // Sky gradient - use stage colors if playing, otherwise use palette
+    // Draw background texture with grid for all screens
+    static float backgroundScroll = 0.0f;
+    backgroundScroll += renderDt * 20.0f;  // Slow scrolling
+    
+    // Select background texture based on screen/stage
+    int bgTextureIndex = 0;
+    if (game.screen == GameScreen::Playing && game.currentStage >= 1 && game.currentStage <= 10) {
+        bgTextureIndex = (game.currentStage - 1) % 4;
+    } else {
+        // Use screen hash to select background
+        bgTextureIndex = static_cast<int>(game.screen) % 4;
+    }
+    
+    // Draw background with grid overlay (full screen for menus, viewport for playing)
+    const int hudStartY = (game.screen == GameScreen::Playing) ? (cfg::kScreenHeight * 2 / 3) : cfg::kScreenHeight;
+    const int viewportHeight = hudStartY;
+    
+    // Draw background in viewport area
+    {
+        // Draw background with grid (full screen for menus, viewport for playing)
+        const int bgHeight = (game.screen == GameScreen::Playing) ? viewportHeight : cfg::kScreenHeight;
+        DrawBackgroundWithGrid(bgTextureIndex, backgroundScroll, pal, cfg::kScreenWidth, bgHeight, 0.85f);
+        
+        // Apply dark overlay for depth
+        DrawRectangleGradientV(0, 0, cfg::kScreenWidth, bgHeight, 
+                               Fade(BLACK, 0.0f), Fade(BLACK, 0.3f));
+    }
+
+    // Sky gradient - use stage colors if playing, otherwise use palette (as overlay)
     Color skyTop = pal.skyTop;
     Color skyBottom = pal.skyBottom;
     if (game.screen == GameScreen::Playing && game.currentStage >= 1 && game.currentStage <= 10) {
         skyTop = GetStageBackgroundTop(game.currentStage);
         skyBottom = GetStageBackgroundBottom(game.currentStage);
     }
-    // Calculate HUD area - bottom third of screen
-    const int hudStartY = (game.screen == GameScreen::Playing) ? (cfg::kScreenHeight * 2 / 3) : cfg::kScreenHeight;
-    const int viewportHeight = hudStartY;
     
-    // Draw sky gradient only in viewport area (above HUD)
-    DrawRectangleGradientV(0, 0, cfg::kScreenWidth, viewportHeight, skyTop, skyBottom);
+    // Draw sky gradient overlay (semi-transparent over background)
+    DrawRectangleGradientV(0, 0, cfg::kScreenWidth, viewportHeight, 
+                           Fade(skyTop, 0.4f), Fade(skyBottom, 0.5f));
     DrawRectangleGradientV(0, viewportHeight / 2, cfg::kScreenWidth, viewportHeight / 2,
-                           Fade(BLACK, 0.0f), pal.voidTint);
+                           Fade(BLACK, 0.0f), Fade(pal.voidTint, 0.3f));
 
     // Set scissor test to exclude HUD area (only render 3D in top 2/3 of screen when playing)
     if (game.screen == GameScreen::Playing) {
@@ -1881,8 +1999,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
     const int cy = cfg::kScreenHeight / 2;
 
     if (game.screen == GameScreen::MainMenu) {
-        // Dim background.
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.72f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.4f));
 
         DrawText("S K Y R O A D S", cx - 180, cy - 140, 44, pal.uiAccent);
         DrawText("Endless Runner", cx - 90, cy - 90, 20, pal.uiText);
@@ -1902,7 +2020,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("Use UP/DOWN + ENTER", cx - 105, cy + 110, 16, Fade(pal.uiText, 0.6f));
 
     } else if (game.screen == GameScreen::LevelSelect) {
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.75f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.5f));
         DrawText("S E L E C T   L E V E L", cx - 200, 30, 36, pal.uiAccent);
 
         // Draw stage/level grid - 2 rows of 5 stages each
@@ -1921,10 +2040,20 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
             const int stageX = startX + col * (stageWidth + stageSpacing);
             const int stageY = startY + row * (stageHeight + rowSpacing);
 
-            // Stage background preview
+            // Stage background preview with grid
             const Color stageTop = GetStageBackgroundTop(stage);
             const Color stageBottom = GetStageBackgroundBottom(stage);
             DrawRectangleGradientV(stageX, stageY, stageWidth, stageHeight, stageTop, stageBottom);
+            
+            // Add grid pattern to stage preview
+            const int previewGridSpacing = 15;
+            const Color previewGridColor = Fade(pal.gridLine, 0.3f);
+            for (int gx = stageX; gx <= stageX + stageWidth; gx += previewGridSpacing) {
+                DrawLine(gx, stageY, gx, stageY + stageHeight, previewGridColor);
+            }
+            for (int gy = stageY; gy <= stageY + stageHeight; gy += previewGridSpacing) {
+                DrawLine(stageX, gy, stageX + stageWidth, gy, previewGridColor);
+            }
             
             // Highlight selected stage
             if (game.levelSelectStage == stage) {
@@ -1978,8 +2107,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("ARROWS: Navigate  ENTER: Select  ESC: Back", cx - 200, cfg::kScreenHeight - 50, 16, Fade(pal.uiText, 0.7f));
 
     } else if (game.screen == GameScreen::PlaceholderLevel) {
-        // Black screen with message
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, BLACK);
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.6f));
         
         const int stage = GetStageFromLevelIndex(game.currentLevelIndex);
         const int level = GetLevelInStageFromLevelIndex(game.currentLevelIndex);
@@ -1993,7 +2122,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("Press any key to return", cx - 120, cy + 60, 16, Fade(pal.uiText, 0.7f));
 
     } else if (game.screen == GameScreen::Leaderboard) {
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.78f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.5f));
         DrawText("L E A D E R B O A R D", cx - 200, 60, 36, pal.uiAccent);
 
         if (game.leaderboardCount == 0) {
@@ -2013,7 +2143,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("Press ESC or ENTER to go back", cx - 160, cfg::kScreenHeight - 50, 16, Fade(pal.uiText, 0.6f));
 
     } else if (game.screen == GameScreen::Paused) {
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.65f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.4f));
         DrawText("P A U S E D", cx - 110, 60, 40, pal.uiAccent);
 
         // Statistics panel (left side)
@@ -2088,7 +2219,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("ESC/P to resume", cx - 85, cfg::kScreenHeight - 50, 16, Fade(pal.uiText, 0.6f));
 
     } else if (game.screen == GameScreen::ExitConfirm) {
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.80f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.5f));
         DrawText("Exit Game?", cx - 100, cy - 60, 40, pal.uiAccent);
 
         const char* items[] = {"No", "Yes"};
@@ -2107,7 +2239,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("ESC to cancel", cx - 70, cy + 135, 16, Fade(pal.uiText, 0.6f));
 
     } else if (game.screen == GameScreen::NameEntry) {
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.75f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.5f));
 
         DrawText("NEW HIGH SCORE!", cx - 140, cy - 80, 32, pal.neonEdgeGlow);
         
@@ -2130,7 +2263,8 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("ESC to skip", cx - 60, cy + 110, 16, Fade(pal.uiText, 0.6f));
 
     } else if (game.screen == GameScreen::GameOver) {
-        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.65f));
+        // Dim background overlay (background texture already drawn above)
+        DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, Fade(BLACK, 0.4f));
 
         const char* overTitle = game.levelComplete ? "L E V E L   C L E A R" : "G A M E   O V E R";
         DrawText(overTitle, cx - 170, cy - 90, 40, game.levelComplete ? pal.neonEdgeGlow : pal.uiAccent);
