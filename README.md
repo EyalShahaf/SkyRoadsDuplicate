@@ -52,6 +52,9 @@ Fly a speeder ship across a neon platform, dash for style points, and climb the 
   <br/>
   <img src="docs/screenshots/screenshot_20260219_213923.png" width="45%" alt="Gameplay Screenshot 3"/>
   <img src="docs/screenshots/screenshot_20260219_214124.png" width="45%" alt="Gameplay Screenshot 4"/>
+  <br/>
+  <img src="docs/screenshots/screenshot_20260220_211748.png" width="45%" alt="Gameplay Screenshot 5"/>
+  <img src="docs/screenshots/screenshot_20260220_211756.png" width="45%" alt="Gameplay Screenshot 6"/>
 </div>
 
 ## ✨ Features
@@ -78,6 +81,8 @@ Fly a speeder ship across a neon platform, dash for style points, and climb the 
 - **14 automated simulation tests** via CTest (jump, dash, air control, scoring, difficulty, restart invariants, etc.)
 - **Debug heap-allocation tracker** — overrides `operator new` in debug builds; warns when the update loop allocates
 - **Performance overlay** — update/render milliseconds and allocation count shown on-screen
+- **Screenshot capture** — Press **O** during gameplay to save screenshots with timestamp
+- **Screenshot automation** — Scripts for automated screenshot generation across all levels
 - **Cross-platform** — macOS, Linux, Windows; CMake `FetchContent` auto-downloads raylib 5.5
 
 ## 🛠️ Tech Stack
@@ -105,6 +110,7 @@ Fly a speeder ship across a neon platform, dash for style points, and climb the 
 | **N** | New run (random seed) |
 | **Tab** | Cycle color palette |
 | **B** | Toggle bloom overlay |
+| **O** | Take screenshot |
 | **Esc** / **P** | Pause |
 
 ### Menus
@@ -154,6 +160,17 @@ First build downloads raylib via CMake `FetchContent`, so it can take a bit.
 ./scripts/test.sh
 ```
 
+**Take screenshots:**
+```bash
+./scripts/screenshot.sh          # Quick screenshot
+./scripts/screenshot_levels.sh    # Generate screenshots for all levels
+```
+
+**Clean build directory:**
+```bash
+./scripts/clean_build.sh
+```
+
 ### Windows PowerShell
 
 ```powershell
@@ -171,6 +188,16 @@ First build downloads raylib via CMake `FetchContent`, so it can take a bit.
 **Run simulation tests:**
 ```powershell
 ./scripts/test.ps1
+```
+
+**Take screenshots:**
+```powershell
+./scripts/screenshot_levels.ps1    # Generate screenshots for all levels
+```
+
+**Clean build directory:**
+```powershell
+# Use clean_build.sh or manually: Remove-Item -Recurse -Force build
 ```
 
 ### Manual Build
@@ -216,7 +243,15 @@ cmake --build build --config Release
 │   └── SimTests.cpp        #   14 deterministic simulation tests (CTest)
 ├── assets/
 │   └── models/             #   Kenney craft_speederA OBJ model
-└── scripts/                #   Build / run / test helpers for macOS/Linux and Windows
+├── scripts/                #   Build / run / test / screenshot automation helpers
+│   ├── build.sh / .ps1     #   Build scripts
+│   ├── run.sh / .ps1       #   Run scripts
+│   ├── test.sh / .ps1      #   Test scripts
+│   ├── clean_build.sh       #   Clean build directory
+│   ├── screenshot.sh       #   Quick screenshot capture
+│   └── screenshot_levels.sh/.ps1 #   Automated screenshot generation for all levels
+└── tools/
+    └── sim_runner.cpp       #   Headless level validator with screenshot support
 ```
 
 ### Key Design Decisions
