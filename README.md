@@ -1,29 +1,78 @@
-# SkyRoads — Endless Runner
+# SkyRoads — Endless Runner 🚀
+
+![C++](https://img.shields.io/badge/C++-20-blue?style=for-the-badge&logo=cplusplus&logoColor=white)
+![CMake](https://img.shields.io/badge/CMake-3.21+-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
+![raylib](https://img.shields.io/badge/raylib-5.5-FF6B6B?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge)
+![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 
 A retro-inspired SkyRoads-style endless runner built with **C++20** and **raylib**.
 Fly a speeder ship across a neon platform, dash for style points, and climb the leaderboard.
 
-## Screenshots
+---
 
-![Gameplay Screenshot 1](docs/screenshots/screenshot_20260219_201540.png)
-![Gameplay Screenshot 2](docs/screenshots/screenshot_20260219_201545.png)
-![Gameplay Screenshot 3](docs/screenshots/screenshot_20260219_213923.png)
-![Gameplay Screenshot 4](docs/screenshots/screenshot_20260219_214124.png)
+<div align="center">
 
-## Features
+# 🤖 Built with AI Assistance
 
+**This entire project was developed collaboratively with AI coding assistants, including Cursor AI and other notable AI agents.**
+**The development process showcased the power of human-AI collaboration in modern software engineering.**
+
+</div>
+
+---
+
+## 📑 Table of Contents
+
+- [Highlights](#-highlights)
+- [Screenshots](#-screenshots)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Controls](#-controls)
+- [Quick Start](#-quick-start)
+- [Architecture](#-architecture)
+- [Requirements](#-requirements)
+- [Credits](#-credits)
+
+## 🌟 Highlights
+
+- ⚡ **High Performance** - Fixed timestep at 120Hz with zero-allocation game loop
+- 🎨 **Stunning Visuals** - Neon aesthetics with particle effects and dynamic lighting
+- 🎯 **Deterministic** - Seeded runs for perfect reproducibility and testing
+- 🧪 **Well Tested** - 14 automated simulation tests ensuring game mechanics work correctly
+- 🎮 **Smooth Controls** - Coyote time and input buffering for responsive, forgiving gameplay
+- 🚀 **Cross-Platform** - Runs seamlessly on Windows, macOS, and Linux
+- 🎭 **Multiple Palettes** - Three distinct color schemes to match your mood
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="docs/screenshots/screenshot_20260219_201540.png" width="45%" alt="Gameplay Screenshot 1"/>
+  <img src="docs/screenshots/screenshot_20260219_201545.png" width="45%" alt="Gameplay Screenshot 2"/>
+  <br/>
+  <img src="docs/screenshots/screenshot_20260219_213923.png" width="45%" alt="Gameplay Screenshot 3"/>
+  <img src="docs/screenshots/screenshot_20260219_214124.png" width="45%" alt="Gameplay Screenshot 4"/>
+</div>
+
+## ✨ Features
+
+### 🎮 Gameplay
 - **Endless forward-scrolling runner** on a single neon-lit platform
 - **Jump** with coyote time and input buffering for forgiving controls
 - **Dash** boost (ground only) with cooldown — earns style score and increases your multiplier
 - **Dynamic difficulty** — forward speed and hazard probability ramp over time, capped at a configurable ceiling
 - **Scoring** — distance score + style score combined with a speed-based multiplier (×1.00 – ×2.50)
 - **Persistent leaderboard** — top 10 scores saved to a binary file with seeded defaults
+
+### 🎨 Visuals
 - **3 swappable color palettes** — Neon Dusk, Cyan Sunrise, Magenta Storm (cycle at runtime)
 - **Optional bloom overlay** toggle
 - **3D ship model** — Kenney Space Kit speeder (OBJ), with wireframe neon outline and engine exhaust trail
 - **Rich visual scene dressing** — starfield with twinkling, mountain silhouettes, floating decorative cubes with glow halos, ambient particles, Tron-style grid, scrolling track bands, and speed streaks
 - **Landing particle bursts** on touchdown
 - **Dynamic follow camera** — smoothly tracks the ship, rolls on strafe, and widens FOV during speed boosts
+
+### ⚡ Performance & Quality
 - **Fixed timestep simulation** (1/120 s) decoupled from rendering with interpolation
 - **Deterministic simulation** — Xorshift32 RNG, seeded runs are perfectly reproducible
 - **14 automated simulation tests** via CTest (jump, dash, air control, scoring, difficulty, restart invariants, etc.)
@@ -31,7 +80,18 @@ Fly a speeder ship across a neon platform, dash for style points, and climb the 
 - **Performance overlay** — update/render milliseconds and allocation count shown on-screen
 - **Cross-platform** — macOS, Linux, Windows; CMake `FetchContent` auto-downloads raylib 5.5
 
-## Controls
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|----------|-----------|
+| **Language** | C++20 |
+| **Graphics Library** | raylib 5.5 |
+| **Build System** | CMake 3.21+ |
+| **Testing Framework** | CTest |
+| **Platforms** | Windows, macOS, Linux |
+| **Compiler Support** | GCC 11+, Clang 14+, MSVC 2022+ |
+
+## 🎮 Controls
 
 ### Gameplay
 
@@ -64,7 +124,74 @@ Fly a speeder ship across a neon platform, dash for style points, and climb the 
 | **N** | New run |
 | **Esc** / **Enter** | Return to main menu |
 
-## Architecture
+## 🚀 Quick Start
+
+### Prerequisites
+
+- ✅ CMake 3.21+
+- ✅ C++20-capable compiler:
+  - macOS: Apple Clang (Xcode Command Line Tools)
+  - Linux: GCC 11+ or Clang 14+
+  - Windows: Visual Studio 2022 (MSVC) or Ninja + Clang/GCC
+- ✅ Git
+
+### macOS/Linux
+
+```bash
+# Clone the repository
+git clone https://github.com/EyalShahaf/SkyRoadsDuplicate.git
+cd SkyRoadsDuplicate
+
+# Build and run
+./scripts/build.sh
+./scripts/run.sh
+```
+
+First build downloads raylib via CMake `FetchContent`, so it can take a bit.
+
+**Run simulation tests:**
+```bash
+./scripts/test.sh
+```
+
+### Windows PowerShell
+
+```powershell
+# Clone the repository
+git clone https://github.com/EyalShahaf/SkyRoadsDuplicate.git
+cd SkyRoadsDuplicate
+
+# Build and run
+./scripts/build.ps1
+./scripts/run.ps1
+```
+
+First build downloads raylib via CMake `FetchContent`, so it can take a bit.
+
+**Run simulation tests:**
+```powershell
+./scripts/test.ps1
+```
+
+### Manual Build
+
+#### macOS/Linux
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+./build/skyroads
+```
+
+#### Windows (Visual Studio generator)
+
+```powershell
+cmake -S . -B build
+cmake --build build --config Release
+./build/Release/skyroads.exe
+```
+
+## 🏗️ Architecture
 
 ```text
 .
@@ -102,73 +229,24 @@ Fly a speeder ship across a neon platform, dash for style points, and climb the 
 | **Deterministic replay** | Same seed → identical run; RNG state is explicit, never global |
 | **Configuration** | All tuning constants live in `core/Config.hpp` as `constexpr` values |
 
-## Requirements
+## 📋 Requirements
 
-- CMake 3.21+
-- A C++20-capable compiler:
+- **CMake** 3.21+
+- **C++20-capable compiler**:
   - macOS: Apple Clang (Xcode Command Line Tools)
   - Linux: GCC 11+ or Clang 14+
   - Windows: Visual Studio 2022 (MSVC) or Ninja + Clang/GCC
 
-## Quick Start (macOS/Linux)
+## 🙏 Credits
 
-```bash
-./scripts/build.sh
-./scripts/run.sh
-```
+- **Ship model** from [Kenney Space Kit](https://kenney.nl/assets/space-kit) (CC0)
+- **Graphics library** [raylib](https://www.raylib.com/) 5.5
+- **AI Development Assistance** - This project was developed with the help of AI coding assistants, demonstrating the collaborative potential of human-AI pair programming
 
-First build downloads raylib via CMake `FetchContent`, so it can take a bit.
+---
 
-Run simulation tests:
+<div align="center">
 
-```bash
-./scripts/test.sh
-```
+**⭐ If you enjoyed this project, consider giving it a star! ⭐**
 
-## Quick Start (Windows PowerShell)
-
-```powershell
-./scripts/build.ps1
-./scripts/run.ps1
-```
-
-First build downloads raylib via CMake `FetchContent`, so it can take a bit.
-
-Run simulation tests:
-
-```powershell
-./scripts/test.ps1
-```
-
-## Manual Build
-
-### macOS/Linux
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
-
-Run:
-
-```bash
-./build/skyroads
-```
-
-### Windows (Visual Studio generator)
-
-```powershell
-cmake -S . -B build
-cmake --build build --config Release
-```
-
-Run:
-
-```powershell
-./build/Release/skyroads.exe
-```
-
-## Credits
-
-- Ship model from [Kenney Space Kit](https://kenney.nl/assets/space-kit) (CC0)
-- Built with [raylib](https://www.raylib.com/) 5.5
+</div>
