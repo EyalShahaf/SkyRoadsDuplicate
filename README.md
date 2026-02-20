@@ -3,6 +3,13 @@
 A retro-inspired SkyRoads-style endless runner built with **C++20** and **raylib**.
 Fly a speeder ship across a neon platform, dash for style points, and climb the leaderboard.
 
+## Screenshots
+
+![Gameplay Screenshot 1](docs/screenshots/screenshot_20260219_201540.png)
+![Gameplay Screenshot 2](docs/screenshots/screenshot_20260219_201545.png)
+![Gameplay Screenshot 3](docs/screenshots/screenshot_20260219_213923.png)
+![Gameplay Screenshot 4](docs/screenshots/screenshot_20260219_214124.png)
+
 ## Features
 
 - **Endless forward-scrolling runner** on a single neon-lit platform

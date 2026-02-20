@@ -14,9 +14,10 @@ compile_commands.json
 # Runtime data
 leaderboard.dat
 
-# Generated screenshots
+# Generated screenshots (but allow docs/screenshots for README)
 screenshot_*.png
 test_screenshot_*.png
+!docs/screenshots/*.png
 
 # Windows shortcuts
 *.url
