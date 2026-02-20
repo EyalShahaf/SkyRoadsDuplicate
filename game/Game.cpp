@@ -44,6 +44,7 @@ void ResetRun(Game& game, const uint32_t seed, int levelIndex) {
 
     game.previousPlayer = game.player;
     game.input = {};
+    game.throttle = 0.5f;  // Start at 50% throttle
     game.runActive = true;
     game.runOver = false;
     game.runTime = 0.0f;
@@ -69,8 +70,8 @@ void ResetRun(Game& game, const uint32_t seed, int levelIndex) {
     game.nameInputLength = 0;
     game.leaderboardStats = {};
 
-    game.camera.position = Vector3{0.0f, 4.0f, -8.0f};
-    game.camera.target = Vector3{0.0f, 1.0f, 4.0f};
+    game.camera.position = Vector3{0.0f, 1.2f, -6.0f};
+    game.camera.target = Vector3{0.0f, 0.3f, 8.0f};
     game.camera.up = Vector3{0.0f, 1.0f, 0.0f};
     game.camera.fovy = cfg::kCameraBaseFov;
     game.camera.projection = CAMERA_PERSPECTIVE;
@@ -351,6 +352,16 @@ void ReadInput(Game& game) {
         moveX += 1.0f;
     }
     game.input.moveX = moveX;
+
+    // Throttle control (UP/DOWN or W/S)
+    float throttleDelta = 0.0f;
+    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
+        throttleDelta += 1.0f;
+    }
+    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
+        throttleDelta -= 1.0f;
+    }
+    game.input.throttleDelta = throttleDelta;
 
     if (IsKeyPressed(KEY_SPACE)) game.input.jumpQueued = true;
     if (IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT)) game.input.dashQueued = true;

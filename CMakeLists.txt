@@ -10,6 +10,31 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# macOS-specific: Configure SDK and compiler settings
+if(APPLE)
+    # Try to use xcrun to find the SDK path
+    execute_process(
+        COMMAND xcrun --show-sdk-path
+        OUTPUT_VARIABLE MACOS_SDK_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(MACOS_SDK_PATH)
+        set(CMAKE_OSX_SYSROOT "${MACOS_SDK_PATH}" CACHE PATH "macOS SDK path")
+        message(STATUS "Using macOS SDK: ${MACOS_SDK_PATH}")
+    endif()
+    
+    # Set minimum deployment target
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum macOS deployment target")
+    endif()
+    
+    # Set SDKROOT environment variable for subprocesses (helps with raylib/GLFW builds)
+    if(MACOS_SDK_PATH)
+        set(ENV{SDKROOT} "${MACOS_SDK_PATH}")
+    endif()
+endif()
+
 include(FetchContent)
 
 # Keep raylib local to this build tree and avoid noisy updates after first fetch.

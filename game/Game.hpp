@@ -31,6 +31,7 @@ struct PlayerSim {
 
 struct InputState {
     float moveX = 0.0f;
+    float throttleDelta = 0.0f;  // -1.0 to 1.0, throttle change input
     bool jumpQueued = false;
     bool dashQueued = false;
     bool restartSameQueued = false;
@@ -101,6 +102,9 @@ struct Game {
     float difficultyT = 0.0f;
     float diffSpeedBonus = 0.0f;
     float hazardProbability = 0.0f;
+
+    // Throttle system
+    float throttle = 0.5f;  // 0.0 to 1.0, controls forward speed
 
     const Level* level = nullptr;
     int currentLevelIndex = 1;  // 1-based level index (1-30)

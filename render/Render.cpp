@@ -9,6 +9,7 @@
 #include "game/Game.hpp"
 #include "render/Palette.hpp"
 #include "sim/Level.hpp"
+#include "rlgl.h"
 
 namespace {
 
@@ -398,6 +399,7 @@ Model g_shipModel{};
 bool g_texturesLoaded = false;
 Texture2D g_inputTilemap{};
 Texture2D g_planetTextures[3]{};  // planet00, planet01, planet03
+Texture2D g_hudReferenceImage{};  // Reference image for HUD assets
 
 // --- Engine exhaust pool (render-side, preallocated) ---
 
@@ -445,17 +447,20 @@ void UpdateExhaustParticles(float dt) {
 void UpdateFollowCamera(Game& game, const Vector3& playerPos, const float renderDt) {
     if (game.runOver) return;
 
-    const Vector3 desiredTarget = Vector3{playerPos.x, playerPos.y + 1.0f, playerPos.z + 6.0f};
-    const Vector3 desiredPos = Vector3{playerPos.x, playerPos.y + 3.0f, playerPos.z - 10.0f};
+    // Lower camera to show more level/platform, less empty sky
+    // Target is closer to platform level, looking more horizontally
+    const Vector3 desiredTarget = Vector3{playerPos.x, playerPos.y + 0.3f, playerPos.z + 8.0f};
+    // Camera is lower and closer to player for better screen usage
+    const Vector3 desiredPos = Vector3{playerPos.x, playerPos.y + 1.2f, playerPos.z - 6.0f};
 
     const Vector3 clampedTarget = Vector3{
         desiredTarget.x,
-        (desiredTarget.y < 0.8f) ? 0.8f : desiredTarget.y,
+        (desiredTarget.y < 0.3f) ? 0.3f : desiredTarget.y,
         desiredTarget.z
     };
     const Vector3 clampedPos = Vector3{
         desiredPos.x,
-        (desiredPos.y < 2.5f) ? 2.5f : desiredPos.y,
+        (desiredPos.y < 1.0f) ? 1.0f : desiredPos.y,
         desiredPos.z
     };
 
@@ -506,6 +511,13 @@ void InitRenderer() {
         for (int i = 0; i < 3; ++i) {
             SetTextureFilter(g_planetTextures[i], TEXTURE_FILTER_BILINEAR);
         }
+        
+        // Load HUD reference image (optional, for potential asset extraction)
+        if (assets::Exists("Gemini_Generated_Image_m497ykm497ykm497.png")) {
+            g_hudReferenceImage = LoadTexture(assets::Path("Gemini_Generated_Image_m497ykm497ykm497.png"));
+            SetTextureFilter(g_hudReferenceImage, TEXTURE_FILTER_POINT);  // Pixel-perfect
+        }
+        
         g_texturesLoaded = true;
     }
 }
@@ -520,9 +532,411 @@ void CleanupRenderer() {
         for (int i = 0; i < 3; ++i) {
             UnloadTexture(g_planetTextures[i]);
         }
+        if (g_hudReferenceImage.id != 0) {
+            UnloadTexture(g_hudReferenceImage);
+        }
         g_texturesLoaded = false;
     }
 }
+
+namespace {
+// Helper function to draw a beveled rectangle (3D raised effect)
+void DrawBeveledRectangle(int x, int y, int width, int height, Color baseColor, int bevelSize = 2) {
+    // Base rectangle
+    DrawRectangle(x, y, width, height, baseColor);
+    
+    // Highlight edges (top and left) - lighter
+    Color highlight = Color{
+        static_cast<unsigned char>(std::min(255, baseColor.r + 40)),
+        static_cast<unsigned char>(std::min(255, baseColor.g + 40)),
+        static_cast<unsigned char>(std::min(255, baseColor.b + 40)),
+        255
+    };
+    
+    // Top highlight
+    DrawRectangle(x, y, width, bevelSize, highlight);
+    // Left highlight
+    DrawRectangle(x, y, bevelSize, height, highlight);
+    
+    // Shadow edges (bottom and right) - darker
+    Color shadow = Color{
+        static_cast<unsigned char>(std::max(0, baseColor.r - 40)),
+        static_cast<unsigned char>(std::max(0, baseColor.g - 40)),
+        static_cast<unsigned char>(std::max(0, baseColor.b - 40)),
+        255
+    };
+    
+    // Bottom shadow
+    DrawRectangle(x, y + height - bevelSize, width, bevelSize, shadow);
+    // Right shadow
+    DrawRectangle(x + width - bevelSize, y, bevelSize, height, shadow);
+}
+
+// Helper function to draw LED light with glow effect
+void DrawLEDLight(int centerX, int centerY, int radius, Color color, bool active) {
+    if (!active) {
+        // Dim inactive LED
+        Color dimColor = Color{
+            static_cast<unsigned char>(color.r / 4),
+            static_cast<unsigned char>(color.g / 4),
+            static_cast<unsigned char>(color.b / 4),
+            255
+        };
+        DrawCircle(centerX, centerY, radius, dimColor);
+        return;
+    }
+    
+    // Draw glow layers (outer to inner)
+    for (int i = 3; i >= 0; --i) {
+        const float glowRadius = radius + static_cast<float>(i) * 2.0f;
+        const float alpha = 0.3f / (static_cast<float>(i) + 1.0f);
+        Color glowColor = Color{
+            color.r,
+            color.g,
+            color.b,
+            static_cast<unsigned char>(255 * alpha)
+        };
+        DrawCircle(centerX, centerY, glowRadius, glowColor);
+    }
+    
+    // Draw bright center
+    DrawCircle(centerX, centerY, radius, color);
+    // Draw even brighter inner dot
+    DrawCircle(centerX, centerY, radius * 0.5f, Color{255, 255, 255, 200});
+}
+
+// 7-segment digit patterns (each segment: top, upper-right, lower-right, bottom, lower-left, upper-left, middle)
+// 1 = segment on, 0 = segment off
+constexpr uint8_t k7SegmentPatterns[10] = {
+    0b1111110,  // 0: all except middle
+    0b0110000,  // 1: upper-right, lower-right
+    0b1101101,  // 2: top, upper-right, middle, lower-left, bottom
+    0b1111001,  // 3: top, upper-right, lower-right, middle, bottom
+    0b0110011,  // 4: upper-right, lower-right, middle, upper-left
+    0b1011011,  // 5: top, lower-right, middle, upper-left, bottom
+    0b1011111,  // 6: top, lower-right, middle, lower-left, upper-left, bottom
+    0b1110000,  // 7: top, upper-right, lower-right
+    0b1111111,  // 8: all segments
+    0b1111011   // 9: all except lower-left
+};
+
+// Helper function to draw a single 7-segment digit
+void Draw7SegmentDigit(int x, int y, char digit, int size, Color color, Color glowColor) {
+    if (digit < '0' || digit > '9') return;
+    
+    const int pattern = k7SegmentPatterns[digit - '0'];
+    const int segThickness = std::max(2, size / 8);
+    const int segLength = size / 2;
+    const int centerX = x + size / 2;
+    const int centerY = y + size / 2;
+    
+    // Draw glow first (multiple passes for glow effect)
+    for (int glow = 0; glow < 3; ++glow) {
+        const int offset = glow;
+        Color glowCol = Color{glowColor.r, glowColor.g, glowColor.b, static_cast<unsigned char>(80 / (glow + 1))};
+        
+        // Top segment
+        if (pattern & 0b1000000) {
+            DrawRectangle(centerX - segLength/2 + offset, y + offset, segLength, segThickness, glowCol);
+        }
+        // Upper-right segment
+        if (pattern & 0b0100000) {
+            DrawRectangle(centerX + segLength/2 + offset, y + segThickness + offset, segThickness, segLength, glowCol);
+        }
+        // Lower-right segment
+        if (pattern & 0b0010000) {
+            DrawRectangle(centerX + segLength/2 + offset, centerY + offset, segThickness, segLength, glowCol);
+        }
+        // Bottom segment
+        if (pattern & 0b0001000) {
+            DrawRectangle(centerX - segLength/2 + offset, y + size - segThickness + offset, segLength, segThickness, glowCol);
+        }
+        // Lower-left segment
+        if (pattern & 0b0000100) {
+            DrawRectangle(centerX - segLength/2 - segThickness + offset, centerY + offset, segThickness, segLength, glowCol);
+        }
+        // Upper-left segment
+        if (pattern & 0b0000010) {
+            DrawRectangle(centerX - segLength/2 - segThickness + offset, y + segThickness + offset, segThickness, segLength, glowCol);
+        }
+        // Middle segment
+        if (pattern & 0b0000001) {
+            DrawRectangle(centerX - segLength/2 + offset, centerY - segThickness/2 + offset, segLength, segThickness, glowCol);
+        }
+    }
+    
+    // Draw main segments
+    // Top segment
+    if (pattern & 0b1000000) {
+        DrawRectangle(centerX - segLength/2, y, segLength, segThickness, color);
+    }
+    // Upper-right segment
+    if (pattern & 0b0100000) {
+        DrawRectangle(centerX + segLength/2, y + segThickness, segThickness, segLength, color);
+    }
+    // Lower-right segment
+    if (pattern & 0b0010000) {
+        DrawRectangle(centerX + segLength/2, centerY, segThickness, segLength, color);
+    }
+    // Bottom segment
+    if (pattern & 0b0001000) {
+        DrawRectangle(centerX - segLength/2, y + size - segThickness, segLength, segThickness, color);
+    }
+    // Lower-left segment
+    if (pattern & 0b0000100) {
+        DrawRectangle(centerX - segLength/2 - segThickness, centerY, segThickness, segLength, color);
+    }
+    // Upper-left segment
+    if (pattern & 0b0000010) {
+        DrawRectangle(centerX - segLength/2 - segThickness, y + segThickness, segThickness, segLength, color);
+    }
+    // Middle segment
+    if (pattern & 0b0000001) {
+        DrawRectangle(centerX - segLength/2, centerY - segThickness/2, segLength, segThickness, color);
+    }
+}
+
+// Helper function to draw 7-segment number (string of digits)
+void Draw7SegmentNumber(int x, int y, const char* number, int digitSize, int spacing, Color color, Color glowColor) {
+    int currentX = x;
+    for (int i = 0; number[i] != '\0'; ++i) {
+        if (number[i] >= '0' && number[i] <= '9') {
+            Draw7SegmentDigit(currentX, y, number[i], digitSize, color, glowColor);
+            currentX += digitSize + spacing;
+        } else if (number[i] == ' ') {
+            currentX += digitSize / 2;
+        }
+    }
+}
+
+// Helper function to draw a segmented circular gauge with radial fill and visible ticks
+void DrawSegmentedGauge(int centerX, int centerY, float radius, int segmentCount, float fillAmount, 
+                        Color fillColor, Color emptyColor) {
+    const float angleStep = 360.0f / static_cast<float>(segmentCount);
+    const float fillAngle = fillAmount * 360.0f;
+    
+    // Draw filled radial arc (pie slice) - using DrawCircleSectorLines and filled triangles
+    if (fillAmount > 0.0f) {
+        const float startAngle = 0.0f;  // Start from top (0 degrees)
+        const float endAngle = fillAngle;
+        const int segments = static_cast<int>(fillAngle / 2.0f) + 1;  // One segment per 2 degrees
+        
+        // Draw filled pie slice using triangles
+        for (int i = 0; i < segments; ++i) {
+            const float angle1 = (startAngle + (endAngle - startAngle) * static_cast<float>(i) / static_cast<float>(segments)) * DEG2RAD;
+            const float angle2 = (startAngle + (endAngle - startAngle) * static_cast<float>(i + 1) / static_cast<float>(segments)) * DEG2RAD;
+            
+            const float x1 = centerX + std::cos(angle1) * radius;
+            const float y1 = centerY - std::sin(angle1) * radius;
+            const float x2 = centerX + std::cos(angle2) * radius;
+            const float y2 = centerY - std::sin(angle2) * radius;
+            
+            DrawTriangle(Vector2{static_cast<float>(centerX), static_cast<float>(centerY)},
+                        Vector2{x1, y1}, Vector2{x2, y2}, fillColor);
+        }
+    }
+    
+    // Draw tick marks (radial lines from inner to outer radius)
+    const float innerRadius = radius * 0.75f;
+    for (int i = 0; i < segmentCount; ++i) {
+        const float angle = static_cast<float>(i) * angleStep * DEG2RAD;
+        const float cosA = std::cos(angle);
+        const float sinA = std::sin(angle);
+        
+        const float innerX = centerX + cosA * innerRadius;
+        const float innerY = centerY - sinA * innerRadius;
+        const float outerX = centerX + cosA * radius;
+        const float outerY = centerY - sinA * radius;
+        
+        // Use thicker lines for major ticks (every 6 segments)
+        const float tickThickness = (i % 6 == 0) ? 2.5f : 1.5f;
+        const Color tickColor = (i * angleStep < fillAngle) ? fillColor : emptyColor;
+        
+        DrawLineEx(Vector2{innerX, innerY}, Vector2{outerX, outerY}, tickThickness, tickColor);
+    }
+    
+    // Draw outer and inner rings
+    DrawCircleLines(centerX, centerY, radius, Color{100, 100, 150, 255});
+    DrawCircleLines(centerX, centerY, innerRadius, Color{100, 100, 150, 255});
+}
+
+// Helper function to draw blocky/pixelated text (using smaller font with point filtering)
+void DrawBlockyText(const char* text, int x, int y, int fontSize, Color color) {
+    // Use default font but draw at smaller size for blocky effect, then scale up
+    // For now, just use regular text but with appropriate sizing
+    DrawText(text, x, y, fontSize, color);
+}
+
+// Render retro cockpit HUD
+void RenderCockpitHUD(const Game& game, const LevelPalette& pal, float planarSpeed) {
+    const int hudStartY = cfg::kScreenHeight * 2 / 3;  // Bottom third of screen
+    const int hudHeight = cfg::kScreenHeight - hudStartY;
+    const int centerX = cfg::kScreenWidth / 2;
+    
+    // Base console panel (grey/teal background with gradient for depth) - fully opaque
+    Color consoleColorTop = Color{50, 60, 70, 255};  // Fully opaque
+    Color consoleColorBottom = Color{40, 50, 60, 255};  // Fully opaque
+    DrawRectangleGradientV(0, hudStartY, cfg::kScreenWidth, hudHeight, consoleColorTop, consoleColorBottom);
+    
+    // Add some depth with darker border
+    DrawRectangleLinesEx(Rectangle{0.0f, static_cast<float>(hudStartY), 
+                                   static_cast<float>(cfg::kScreenWidth), 
+                                   static_cast<float>(hudHeight)}, 2.0f, Color{30, 35, 40, 255});
+    
+    // Left console panel structure
+    const int leftPanelX = 40;
+    const int leftPanelY = hudStartY + 20;
+    const int panelWidth = 180;
+    const int panelHeight = 100;
+    
+    // Left display: GRAV-C METER - with beveled edges
+    DrawBeveledRectangle(leftPanelX, leftPanelY, panelWidth, panelHeight, Color{30, 35, 40, 255}, 3);
+    
+    // LED indicator light above left display (top-left corner)
+    const float gravValue = std::abs(game.player.velocity.y) * 10.0f;
+    const bool gravLightOn = gravValue > 1.0f;
+    DrawLEDLight(leftPanelX + 15, leftPanelY - 8, 5, Color{0, 255, 0, 255}, gravLightOn);
+    
+    // Black display background (7-segment style)
+    const int displayX = leftPanelX + 10;
+    const int displayY = leftPanelY + 15;
+    const int displayW = panelWidth - 20;
+    const int displayH = 50;
+    DrawRectangle(displayX, displayY, displayW, displayH, Color{0, 0, 0, 255});
+    DrawRectangleLinesEx(Rectangle{static_cast<float>(displayX), static_cast<float>(displayY),
+                                   static_cast<float>(displayW), static_cast<float>(displayH)},
+                         2.0f, Color{40, 40, 40, 255});
+    
+    // GRAV-C METER value - 7-segment display with glow
+    char gravText[32];
+    std::snprintf(gravText, sizeof(gravText), "%.0f", gravValue);
+    const int digitSize = 32;
+    const int numberWidth = static_cast<int>(std::strlen(gravText)) * (digitSize + 4);
+    const int numberX = displayX + (displayW - numberWidth) / 2;
+    const int numberY = displayY + (displayH - digitSize) / 2;
+    Draw7SegmentNumber(numberX, numberY, gravText, digitSize, 4, 
+                      Color{0, 255, 100, 255}, Color{0, 255, 150, 255});
+    
+    // Label - blocky text
+    DrawBlockyText("GRAV-C METER", leftPanelX + 20, leftPanelY + 75, 12, pal.uiText);
+    
+    // Right console panel structure
+    const int rightPanelX = cfg::kScreenWidth - panelWidth - 40;
+    const int rightPanelY = leftPanelY;
+    
+    // Right display: JUMP-O MASTER - with beveled edges
+    DrawBeveledRectangle(rightPanelX, rightPanelY, panelWidth, panelHeight, Color{30, 35, 40, 255}, 3);
+    
+    // LED indicator light above right display (top-left corner)
+    const bool jumpLightOn = game.player.dashTimer > 0.0f || !game.player.grounded;
+    DrawLEDLight(rightPanelX + 15, rightPanelY - 8, 5, Color{0, 255, 0, 255}, jumpLightOn);
+    
+    // Black display background (7-segment style)
+    const int rightDisplayX = rightPanelX + 10;
+    const int rightDisplayY = rightPanelY + 15;
+    DrawRectangle(rightDisplayX, rightDisplayY, displayW, displayH, Color{0, 0, 0, 255});
+    DrawRectangleLinesEx(Rectangle{static_cast<float>(rightDisplayX), static_cast<float>(rightDisplayY),
+                                   static_cast<float>(displayW), static_cast<float>(displayH)},
+                         2.0f, Color{40, 40, 40, 255});
+    
+    // JUMP-O MASTER status - render as text for now (could be 7-segment if we add letters)
+    const char* jumpStatus = "IDLE";
+    if (game.player.dashTimer > 0.0f) {
+        jumpStatus = "DASH";
+    } else if (!game.player.grounded) {
+        jumpStatus = "JUMPING";
+    } else if (game.player.jumpBufferTimer > 0.0f) {
+        jumpStatus = "READY";
+    }
+    // For text status, use glowing green text
+    const int statusTextWidth = MeasureText(jumpStatus, 20);
+    // Draw glow
+    for (int i = 0; i < 3; ++i) {
+        DrawText(jumpStatus, rightDisplayX + (displayW - statusTextWidth) / 2 + i, rightDisplayY + 12 + i, 20, 
+                Color{0, 255, 100, static_cast<unsigned char>(60 / (i + 1))});
+    }
+    // Draw main text
+    DrawText(jumpStatus, rightDisplayX + (displayW - statusTextWidth) / 2, rightDisplayY + 12, 20, Color{0, 255, 100, 255});
+    
+    // Label - blocky text
+    DrawBlockyText("JUMP-O MASTER", rightPanelX + 15, rightPanelY + 75, 12, pal.uiText);
+    
+    // Central circular gauge: O2 FUEL SPEED
+    const int gaugeCenterX = centerX;
+    const int gaugeCenterY = hudStartY + 60;
+    const float gaugeRadius = 55.0f;
+    const int segmentCount = 24;
+    
+    // Draw gauge background circle
+    DrawCircleLines(gaugeCenterX, gaugeCenterY, gaugeRadius, Color{100, 100, 150, 255});
+    DrawCircleLines(gaugeCenterX, gaugeCenterY, gaugeRadius * 0.7f, Color{100, 100, 150, 255});
+    
+    // Calculate normalized values
+    const float speedNormalized = Clamp01(planarSpeed / cfg::kThrottleSpeedMax);
+    const float fuelNormalized = 1.0f - (game.player.dashCooldownTimer / cfg::kDashCooldown);
+    const float o2Normalized = Clamp01(game.runTime / 300.0f);  // 5 minute max
+    
+    // Draw segmented rings for each metric (stacked, starting from top)
+    // Outer ring: SPEED (starts at top, goes clockwise)
+    DrawSegmentedGauge(gaugeCenterX, gaugeCenterY, gaugeRadius, segmentCount, speedNormalized,
+                      Color{200, 100, 255, 255}, Color{40, 40, 80, 255});
+    
+    // Middle ring: FUEL (slightly smaller)
+    DrawSegmentedGauge(gaugeCenterX, gaugeCenterY, gaugeRadius * 0.82f, segmentCount, fuelNormalized,
+                      Color{200, 100, 255, 255}, Color{40, 40, 80, 255});
+    
+    // Inner ring: O2 (smallest)
+    DrawSegmentedGauge(gaugeCenterX, gaugeCenterY, gaugeRadius * 0.64f, segmentCount, o2Normalized,
+                      Color{200, 100, 255, 255}, Color{40, 40, 80, 255});
+    
+    // Center text labels (stacked vertically like original) - blocky text
+    DrawBlockyText("O2", gaugeCenterX - 10, gaugeCenterY - 18, 14, pal.uiText);
+    DrawBlockyText("FUEL", gaugeCenterX - 18, gaugeCenterY - 3, 12, pal.uiText);
+    DrawBlockyText("SPEED", gaugeCenterX - 20, gaugeCenterY + 12, 12, pal.uiText);
+    
+    // Throttle progress bar (below the gauge)
+    const int throttleBarX = centerX - 150;
+    const int throttleBarY = hudStartY + 140;
+    const int throttleBarW = 300;
+    const int throttleBarH = 20;
+    
+    // Background
+    DrawRectangle(throttleBarX, throttleBarY, throttleBarW, throttleBarH, Color{20, 25, 30, 255});
+    DrawRectangleLinesEx(Rectangle{static_cast<float>(throttleBarX), static_cast<float>(throttleBarY),
+                                   static_cast<float>(throttleBarW), static_cast<float>(throttleBarH)},
+                         2.0f, Color{80, 90, 100, 255});
+    
+    // Throttle fill (with gradient effect for retro look)
+    const int throttleFillW = static_cast<int>(game.throttle * throttleBarW);
+    if (throttleFillW > 0) {
+        // Main fill
+        DrawRectangle(throttleBarX, throttleBarY, throttleFillW, throttleBarH, Color{200, 100, 255, 255});
+        // Highlight on top
+        DrawRectangle(throttleBarX, throttleBarY, throttleFillW, throttleBarH / 3, Color{255, 150, 255, 255});
+        // Border
+        DrawRectangleLinesEx(Rectangle{static_cast<float>(throttleBarX), static_cast<float>(throttleBarY),
+                                       static_cast<float>(throttleFillW), static_cast<float>(throttleBarH)},
+                            1.0f, Color{255, 200, 255, 255});
+    }
+    
+    // Throttle label - blocky text
+    DrawBlockyText("THROTTLE", centerX - 35, throttleBarY - 18, 14, pal.uiText);
+    
+    // Additional console elements (side panels)
+    DrawRectangle(0, hudStartY, 20, hudHeight, Color{40, 45, 50, 255});
+    DrawRectangle(cfg::kScreenWidth - 20, hudStartY, 20, hudHeight, Color{40, 45, 50, 255});
+    
+    // Small decorative elements
+    for (int i = 0; i < 3; ++i) {
+        const int x = 10 + i * 6;
+        DrawRectangle(x, hudStartY + 10, 4, 4, Color{100, 120, 140, 255});
+    }
+    for (int i = 0; i < 3; ++i) {
+        const int x = cfg::kScreenWidth - 14 - i * 6;
+        DrawRectangle(x, hudStartY + 10, 4, 4, Color{100, 120, 140, 255});
+    }
+}
+}  // namespace
 
 void RenderFrame(Game& game, const float alpha, const float renderDt) {
     // Lazy-init static scene data (only once, no per-frame alloc).
@@ -563,9 +977,20 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         skyTop = GetStageBackgroundTop(game.currentStage);
         skyBottom = GetStageBackgroundBottom(game.currentStage);
     }
-    DrawRectangleGradientV(0, 0, cfg::kScreenWidth, cfg::kScreenHeight, skyTop, skyBottom);
-    DrawRectangleGradientV(0, cfg::kScreenHeight / 2, cfg::kScreenWidth, cfg::kScreenHeight / 2,
+    // Calculate HUD area - bottom third of screen
+    const int hudStartY = (game.screen == GameScreen::Playing) ? (cfg::kScreenHeight * 2 / 3) : cfg::kScreenHeight;
+    const int viewportHeight = hudStartY;
+    
+    // Draw sky gradient only in viewport area (above HUD)
+    DrawRectangleGradientV(0, 0, cfg::kScreenWidth, viewportHeight, skyTop, skyBottom);
+    DrawRectangleGradientV(0, viewportHeight / 2, cfg::kScreenWidth, viewportHeight / 2,
                            Fade(BLACK, 0.0f), pal.voidTint);
+
+    // Set scissor test to exclude HUD area (only render 3D in top 2/3 of screen when playing)
+    if (game.screen == GameScreen::Playing) {
+        rlEnableScissorTest();
+        rlScissor(0, 0, cfg::kScreenWidth, viewportHeight);
+    }
 
     BeginMode3D(game.camera);
 
@@ -825,11 +1250,17 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
 
     EndMode3D();
 
-    // ---- Bloom overlay ----
+    // Disable scissor test after 3D rendering
+    if (game.screen == GameScreen::Playing) {
+        rlDisableScissorTest();
+    }
+
+    // ---- Bloom overlay (only in viewport area, not over HUD) ----
     if (game.bloomEnabled) {
-        DrawRectangleGradientV(0, 0, cfg::kScreenWidth, cfg::kScreenHeight / 3,
+        const int viewportHeight = (game.screen == GameScreen::Playing) ? (cfg::kScreenHeight * 2 / 3) : cfg::kScreenHeight;
+        DrawRectangleGradientV(0, 0, cfg::kScreenWidth, viewportHeight / 3,
                                Fade(pal.uiAccent, cfg::kBloomOverlayAlpha), Fade(BLACK, 0.0f));
-        DrawRectangleGradientV(0, cfg::kScreenHeight / 2, cfg::kScreenWidth, cfg::kScreenHeight / 2,
+        DrawRectangleGradientV(0, viewportHeight / 2, cfg::kScreenWidth, viewportHeight / 2,
                                Fade(BLACK, 0.0f), Fade(pal.laneGlow, cfg::kBloomOverlayAlpha * 0.65f));
     }
 
@@ -1179,95 +1610,22 @@ void RenderFrame(Game& game, const float alpha, const float renderDt) {
         DrawText("ESC  Main menu",     cx - 110, controlsY + 52, 18, Fade(pal.uiText, 0.7f));
 
     } else {
-        // ---- Playing: HUD ----
-        DrawRectangleRounded(Rectangle{10.0f, 10.0f, 360.0f, 140.0f}, 0.08f, 8, pal.uiPanel);
-        DrawText("SkyRoads", 20, 18, 22, pal.uiText);
+        // ---- Playing: Retro Cockpit HUD ----
+        RenderCockpitHUD(game, pal, planarSpeed);
+        
+        // Keep minimal top-left info (score, level)
+        DrawRectangleRounded(Rectangle{10.0f, 10.0f, 280.0f, 80.0f}, 0.08f, 8, Fade(pal.uiPanel, 0.8f));
         char levelText[32];
         std::snprintf(levelText, sizeof(levelText), "Level %d", game.currentLevelIndex);
-        DrawText(levelText, 20, 40, 16, Fade(pal.uiAccent, 0.8f));
-        DrawFPS(20, 60);
-
-        char speedText[64];
-        std::snprintf(speedText, sizeof(speedText), "Speed: %.1f u/s", planarSpeed);
-        DrawText(speedText, 20, 84, 16, pal.uiText);
-
+        DrawText(levelText, 20, 18, 16, Fade(pal.uiAccent, 0.9f));
+        
         char scoreText[96];
-        std::snprintf(scoreText, sizeof(scoreText), "Score: %.0f   Best: %.0f", GetCurrentScore(game), game.bestScore);
-        DrawText(scoreText, 20, 108, 18, pal.uiAccent);
-
+        std::snprintf(scoreText, sizeof(scoreText), "Score: %.0f", GetCurrentScore(game));
+        DrawText(scoreText, 20, 38, 16, pal.uiText);
+        
         char multText[64];
         std::snprintf(multText, sizeof(multText), "x%.2f", game.scoreMultiplier);
-        DrawText(multText, 300, 108, 18, pal.uiAccent);
-
-        DrawText("ESC pause  TAB palette  B bloom  O screenshot", 20, 134, 14, Fade(pal.uiText, 0.6f));
-
-        // Controls mini-HUD (top-right) with key icons.
-        const bool leftHeld = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-        const bool rightHeld = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
-        const bool jumpHeld = IsKeyDown(KEY_SPACE);
-        const bool dashHeld = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
-        const bool pauseHeld = IsKeyDown(KEY_ESCAPE);
-        const int hudW = 200;
-        const int hudX = cfg::kScreenWidth - hudW - 12;
-        const int hudY = 10;
-        DrawRectangleRounded(Rectangle{static_cast<float>(hudX), static_cast<float>(hudY),
-                             static_cast<float>(hudW), 120.0f}, 0.08f, 8, pal.uiPanel);
-        
-        if (g_texturesLoaded) {
-            // Tilemap: 34 cols × 24 rows, tiles are 16×16 with 1px spacing (17×17 total)
-            const int tileSize = 16;
-            const int iconScale = 2;  // 2x scale for visibility
-            const int iconSize = tileSize * iconScale;
-            
-            // Helper to get tile source rectangle
-            auto GetTileRect = [](int row, int col, bool pressed) -> Rectangle {
-                const int tileSize = 16;
-                const int tileSpacing = 17;  // 16px tile + 1px spacing
-                const int yOffset = pressed ? 6 : 0;  // Pressed variants are 6 rows down
-                return Rectangle{
-                    static_cast<float>(col * tileSpacing),
-                    static_cast<float>((row + yOffset) * tileSpacing),
-                    static_cast<float>(tileSize),
-                    static_cast<float>(tileSize)
-                };
-            };
-            
-            // A key: row 5, col 17
-            DrawTextureRec(g_inputTilemap, GetTileRect(5, 17, leftHeld),
-                          Vector2{static_cast<float>(hudX + 10), static_cast<float>(hudY + 10)},
-                          leftHeld ? pal.uiAccent : WHITE);
-            DrawText("Left", hudX + 10 + iconSize + 6, hudY + 12, 14, leftHeld ? pal.uiAccent : pal.uiText);
-            
-            // D key: row 5, col 19
-            DrawTextureRec(g_inputTilemap, GetTileRect(5, 19, rightHeld),
-                          Vector2{static_cast<float>(hudX + 10), static_cast<float>(hudY + 30)},
-                          rightHeld ? pal.uiAccent : WHITE);
-            DrawText("Right", hudX + 10 + iconSize + 6, hudY + 32, 14, rightHeld ? pal.uiAccent : pal.uiText);
-            
-            // Space key: row 6, col 12 (estimated, wide key)
-            DrawTextureRec(g_inputTilemap, GetTileRect(6, 12, jumpHeld),
-                          Vector2{static_cast<float>(hudX + 10), static_cast<float>(hudY + 50)},
-                          jumpHeld ? pal.uiAccent : WHITE);
-            DrawText("Jump", hudX + 10 + iconSize + 6, hudY + 52, 14, jumpHeld ? pal.uiAccent : pal.uiText);
-            
-            // Shift key: row 6, col 20 (estimated)
-            DrawTextureRec(g_inputTilemap, GetTileRect(6, 20, dashHeld),
-                          Vector2{static_cast<float>(hudX + 10), static_cast<float>(hudY + 70)},
-                          dashHeld ? pal.uiAccent : WHITE);
-            DrawText("Dash", hudX + 10 + iconSize + 6, hudY + 72, 14, dashHeld ? pal.uiAccent : pal.uiText);
-            
-            // P/ESC key: row 5, col 15 (estimated for P key, or use ESC if available)
-            // For now, we'll use text for P/ESC since it's not a standard key icon
-            DrawText("P/ESC", hudX + 10, hudY + 90, 12, pauseHeld ? pal.uiAccent : pal.uiText);
-            DrawText("Pause", hudX + 10 + iconSize + 6, hudY + 92, 14, pauseHeld ? pal.uiAccent : pal.uiText);
-        } else {
-            // Fallback to text if textures not loaded
-            DrawText("A/<- Left",   hudX + 10, hudY + 10,  14, leftHeld  ? pal.uiAccent : pal.uiText);
-            DrawText("D/-> Right",  hudX + 10, hudY + 30,  14, rightHeld ? pal.uiAccent : pal.uiText);
-            DrawText("SPACE Jump",  hudX + 10, hudY + 50,  14, jumpHeld  ? pal.uiAccent : pal.uiText);
-            DrawText("SHIFT Dash",  hudX + 10, hudY + 70,  14, dashHeld  ? pal.uiAccent : pal.uiText);
-            DrawText("P/ESC Pause", hudX + 10, hudY + 90,  14, pauseHeld ? pal.uiAccent : pal.uiText);
-        }
+        DrawText(multText, 20, 58, 14, pal.uiAccent);
     }
 
     // ---- Perf overlay (bottom-left, always visible) ----

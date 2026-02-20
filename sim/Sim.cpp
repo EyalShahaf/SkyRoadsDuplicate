@@ -128,13 +128,23 @@ void SimStep(Game& game, const float dt) {
     const float strafeScale = player.grounded ? 1.0f : cfg::kAirControlFactor;
     const float desiredStrafeVelocity = game.input.moveX * cfg::kStrafeSpeed * strafeScale;
     player.velocity.x = MoveToward(player.velocity.x, desiredStrafeVelocity, cfg::kStrafeAccel * strafeScale * dt);
+    
+    // Update throttle based on input
+    if (game.input.throttleDelta != 0.0f) {
+        const float throttleChange = game.input.throttleDelta * cfg::kThrottleChangeRate * dt;
+        game.throttle = Clamp(game.throttle + throttleChange, cfg::kThrottleMin, cfg::kThrottleMax);
+    }
+    
     // Dynamic difficulty: ramp with run time, capped.
     game.difficultyT = Clamp(game.runTime * cfg::kDifficultyRampRate, 0.0f, cfg::kDifficultyMaxCap);
     game.diffSpeedBonus = game.difficultyT * cfg::kDiffSpeedBonus;
     game.hazardProbability = cfg::kDiffHazardProbMin +
         (cfg::kDiffHazardProbMax - cfg::kDiffHazardProbMin) * game.difficultyT;
 
-    const float baseSpeed = cfg::kForwardSpeed + game.diffSpeedBonus;
+    // Calculate speed based on throttle (interpolate between min and max)
+    const float throttleSpeed = cfg::kThrottleSpeedMin + 
+        (cfg::kThrottleSpeedMax - cfg::kThrottleSpeedMin) * game.throttle;
+    const float baseSpeed = throttleSpeed + game.diffSpeedBonus;
     player.velocity.z = baseSpeed + ((player.dashTimer > 0.0f) ? cfg::kDashSpeedBoost : 0.0f);
     if (!player.grounded || jumpedThisStep) {
         player.velocity.y += cfg::kGravity * dt;

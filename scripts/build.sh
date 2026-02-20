@@ -67,6 +67,15 @@ if [[ "${NEED_RECONFIGURE}" == "true" ]]; then
     print_step "${ICON_CONFIG} Configuring (${BUILD_TYPE})..."
     print_info "First run downloads raylib and can take a little while."
     
+    # macOS: Set SDKROOT if available to help with raylib/GLFW builds
+    if [[ "$(uname)" == "Darwin" ]]; then
+        SDK_PATH=$(xcrun --show-sdk-path 2>/dev/null || echo "")
+        if [[ -n "${SDK_PATH}" ]]; then
+            export SDKROOT="${SDK_PATH}"
+            export CMAKE_OSX_SYSROOT="${SDK_PATH}"
+        fi
+    fi
+    
     # Configure with suppressed warnings
     cmake -S . -B "${BUILD_DIR}" \
         -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
@@ -80,6 +89,14 @@ else
 fi
 
 print_step "${ICON_BUILD} Building with ${JOBS} parallel jobs..."
+
+# macOS: Ensure SDKROOT is set for the build process
+if [[ "$(uname)" == "Darwin" ]]; then
+    SDK_PATH=$(xcrun --show-sdk-path 2>/dev/null || echo "")
+    if [[ -n "${SDK_PATH}" ]]; then
+        export SDKROOT="${SDK_PATH}"
+    fi
+fi
 
 # Build with parallel jobs
 # Use a temporary file to capture exit code since pipe creates subshell

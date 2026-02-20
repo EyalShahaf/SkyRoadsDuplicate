@@ -21,8 +21,15 @@ constexpr float kDashSpeedBoost = 14.0f;
 constexpr float kDashDuration = 0.14f;
 constexpr float kDashCooldown = 0.5f;
 
-constexpr float kCameraBaseFov = 60.0f;
-constexpr float kCameraMaxFov = 72.0f;
+// Throttle system
+constexpr float kThrottleMin = 0.0f;
+constexpr float kThrottleMax = 1.0f;
+constexpr float kThrottleChangeRate = 2.5f;  // How fast throttle changes per second
+constexpr float kThrottleSpeedMin = 12.0f;  // Minimum speed at throttle 0
+constexpr float kThrottleSpeedMax = 32.0f;  // Maximum speed at throttle 1
+
+constexpr float kCameraBaseFov = 70.0f;  // Increased to fill screen better
+constexpr float kCameraMaxFov = 82.0f;   // Increased to fill screen better
 constexpr float kCameraRollMaxDeg = 7.0f;
 constexpr float kCameraRollSmoothing = 8.0f;
 
