@@ -1,0 +1,623 @@
+#include "sim/Level.hpp"
+
+#include <cmath>
+
+namespace {
+
+Level BuildLevel1() {
+    Level lv{};
+
+    auto addSeg = [&](float startZ, float length, float topY, float width, float xOffset) {
+        if (lv.segmentCount >= kMaxSegments) return;
+        auto& s = lv.segments[lv.segmentCount++];
+        s.startZ = startZ;
+        s.length = length;
+        s.topY = topY;
+        s.width = width;
+        s.xOffset = xOffset;
+    };
+
+    auto addObs = [&](float z, float x, float y, float sx, float sy, float sz, int col) {
+        if (lv.obstacleCount >= kMaxObstacles) return;
+        auto& o = lv.obstacles[lv.obstacleCount++];
+        o.z = z; o.x = x; o.y = y;
+        o.sizeX = sx; o.sizeY = sy; o.sizeZ = sz;
+        o.colorIndex = col;
+    };
+
+    // ===== LEVEL 1: "Neon Highway" =====
+    // Design: ~600 units long, progressive difficulty.
+    // Starts easy (wide, flat), introduces gaps, narrows, height changes, obstacles.
+
+    float z = 0.0f;
+
+    // --- Section 1: Wide intro runway (easy) ---
+    addSeg(z, 40.0f, 0.0f, 8.0f, 0.0f);   z += 40.0f;
+    // Small gap (2 units — very forgiving, can just run over at speed)
+    z += 2.0f;
+    addSeg(z, 30.0f, 0.0f, 8.0f, 0.0f);   z += 30.0f;
+
+    // --- Section 2: First real gap (needs a hop) ---
+    z += 4.0f;  // gap
+    addSeg(z, 25.0f, 0.0f, 8.0f, 0.0f);   z += 25.0f;
+    // Obstacle: side blocker (teaches dodging — NOT center, so player can pass on either side)
+    addObs(z - 12.0f, 2.0f, 0.0f, 1.2f, 1.8f, 1.2f, 0);
+
+    // --- Section 3: Two quick gaps ---
+    z += 5.0f;  // gap
+    addSeg(z, 15.0f, 0.0f, 7.0f, 0.0f);   z += 15.0f;
+    z += 4.0f;  // gap
+    addSeg(z, 20.0f, 0.0f, 8.0f, 0.0f);   z += 20.0f;
+
+    // --- Section 4: Slight height change + narrow ---
+    z += 5.0f;  // gap
+    addSeg(z, 20.0f, 0.5f, 6.0f, 0.0f);   z += 20.0f;
+    // Side obstacles
+    addObs(z - 10.0f, -2.2f, 0.5f, 0.8f, 2.0f, 0.8f, 1);
+    addObs(z - 10.0f,  2.2f, 0.5f, 0.8f, 2.0f, 0.8f, 1);
+
+    // --- Section 5: Stepped platforms ---
+    z += 6.0f;  // gap
+    addSeg(z, 12.0f, 1.0f, 6.0f, 0.0f);   z += 12.0f;
+    z += 4.0f;
+    addSeg(z, 12.0f, 1.5f, 6.0f, 0.0f);   z += 12.0f;
+    z += 4.0f;
+    addSeg(z, 12.0f, 1.0f, 7.0f, 0.0f);   z += 12.0f;
+
+    // --- Section 6: Zigzag (offset platforms, no obstacles — pure navigation) ---
+    z += 5.0f;
+    addSeg(z, 16.0f, 0.5f, 5.5f, -2.0f);  z += 16.0f;
+    z += 5.0f;
+    addSeg(z, 16.0f, 0.5f, 5.5f,  2.0f);  z += 16.0f;
+    z += 5.0f;
+    addSeg(z, 16.0f, 0.5f, 5.5f, -1.5f);  z += 16.0f;
+
+    // --- Section 7: Long corridor with obstacle slalom ---
+    z += 6.0f;
+    addSeg(z, 55.0f, 0.0f, 8.0f, 0.0f);   z += 55.0f;
+    // Alternating obstacles (well-spaced, dodgeable)
+    addObs(z - 46.0f, -2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 36.0f,  2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 1);
+    addObs(z - 26.0f, -2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 2);
+    addObs(z - 16.0f,  2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 6.0f,  -1.0f, 0.0f, 0.8f, 2.2f, 0.8f, 1);
+
+    // --- Section 8: Big gap (needs dash-jump) ---
+    z += 8.0f;  // big gap
+    addSeg(z, 18.0f, 0.0f, 8.0f, 0.0f);   z += 18.0f;
+
+    // --- Section 9: Narrow winding path ---
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.0f,  1.5f);  z += 12.0f;
+    z += 3.0f;
+    addSeg(z, 12.0f, 0.0f, 4.0f, -1.5f);  z += 12.0f;
+    z += 3.0f;
+    addSeg(z, 12.0f, 0.0f, 4.0f,  0.0f);  z += 12.0f;
+
+    // --- Section 10: Elevated finale (just platforms, no obstacles — the gaps ARE the challenge) ---
+    z += 7.0f;
+    addSeg(z, 14.0f, 2.0f, 7.0f, 0.0f);   z += 14.0f;
+    z += 6.0f;
+    addSeg(z, 14.0f, 2.5f, 6.0f, 1.0f);   z += 14.0f;
+    z += 6.0f;
+    addSeg(z, 14.0f, 2.0f, 6.0f, -1.0f);  z += 14.0f;
+    z += 5.0f;
+
+    // --- Victory platform (wide, safe) ---
+    addSeg(z, 30.0f, 0.0f, 8.0f, 0.0f);   z += 30.0f;
+
+    lv.totalLength = z;
+    return lv;
+}
+
+const Level g_level1 = BuildLevel1();
+
+Level BuildLevel2() {
+    Level lv{};
+
+    auto addSeg = [&](float startZ, float length, float topY, float width, float xOffset) {
+        if (lv.segmentCount >= kMaxSegments) return;
+        auto& s = lv.segments[lv.segmentCount++];
+        s.startZ = startZ;
+        s.length = length;
+        s.topY = topY;
+        s.width = width;
+        s.xOffset = xOffset;
+    };
+
+    auto addObs = [&](float z, float x, float y, float sx, float sy, float sz, int col) {
+        if (lv.obstacleCount >= kMaxObstacles) return;
+        auto& o = lv.obstacles[lv.obstacleCount++];
+        o.z = z; o.x = x; o.y = y;
+        o.sizeX = sx; o.sizeY = sy; o.sizeZ = sz;
+        o.colorIndex = col;
+    };
+
+    // ===== LEVEL 2: "Sky Labyrinth" =====
+    // Design: ~700 units long, more challenging than Level 1.
+    // Features: Narrower platforms, more obstacles, complex height changes, tighter gaps.
+
+    float z = 0.0f;
+
+    // --- Section 1: Quick warm-up (shorter than L1) ---
+    addSeg(z, 25.0f, 0.0f, 7.0f, 0.0f);   z += 25.0f;
+    z += 3.0f;  // small gap
+    addSeg(z, 20.0f, 0.0f, 7.0f, 0.0f);   z += 20.0f;
+
+    // --- Section 2: Early obstacle introduction (center obstacles) ---
+    z += 5.0f;
+    addSeg(z, 30.0f, 0.0f, 7.0f, 0.0f);   z += 30.0f;
+    // Center obstacle (must dodge left or right)
+    addObs(z - 15.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+
+    // --- Section 3: Narrowing platforms with side obstacles ---
+    z += 6.0f;
+    addSeg(z, 18.0f, 0.0f, 5.5f, 0.0f);   z += 18.0f;
+    addObs(z - 9.0f, -2.5f, 0.0f, 0.9f, 1.9f, 0.9f, 1);
+    addObs(z - 9.0f,  2.5f, 0.0f, 0.9f, 1.9f, 0.9f, 1);
+    z += 5.0f;
+    addSeg(z, 18.0f, 0.0f, 5.0f, 0.0f);   z += 18.0f;
+
+    // --- Section 4: Stepped narrow path (requires precision) ---
+    z += 6.0f;
+    addSeg(z, 14.0f, 0.5f, 4.5f, -1.0f);  z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 1.0f, 4.5f, 1.0f);   z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.5f, 4.5f, -0.5f);  z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 0.5f);   z += 14.0f;
+
+    // --- Section 5: Wide corridor with obstacle maze ---
+    z += 6.0f;
+    addSeg(z, 50.0f, 0.0f, 7.5f, 0.0f);   z += 50.0f;
+    // Dense obstacle pattern (zigzag required)
+    addObs(z - 45.0f, -2.8f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 38.0f,  2.8f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+    addObs(z - 31.0f, -2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 2);
+    addObs(z - 24.0f,  2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 17.0f, -2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+    addObs(z - 10.0f,  2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 2);
+    addObs(z - 3.0f,  -1.5f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+
+    // --- Section 6: Big gap sequence (needs dash-jumps) ---
+    z += 7.0f;  // gap
+    addSeg(z, 12.0f, 0.0f, 6.0f, 0.0f);   z += 12.0f;
+    z += 7.0f;  // gap
+    addSeg(z, 12.0f, 0.0f, 6.0f, 0.0f);   z += 12.0f;
+    z += 8.0f;  // bigger gap
+    addSeg(z, 15.0f, 0.0f, 6.0f, 0.0f);   z += 15.0f;
+
+    // --- Section 7: Elevated narrow platforms with obstacles ---
+    z += 6.0f;
+    addSeg(z, 16.0f, 1.5f, 4.0f, -1.5f);  z += 16.0f;
+    addObs(z - 8.0f, -1.5f, 1.5f, 0.7f, 1.7f, 0.7f, 1);
+    z += 5.0f;
+    addSeg(z, 16.0f, 2.0f, 4.0f, 1.5f);   z += 16.0f;
+    addObs(z - 8.0f, 1.5f, 2.0f, 0.7f, 1.7f, 0.7f, 2);
+    z += 5.0f;
+    addSeg(z, 16.0f, 1.5f, 4.0f, 0.0f);   z += 16.0f;
+
+    // --- Section 8: Descending platforms (back to ground) ---
+    z += 6.0f;
+    addSeg(z, 14.0f, 1.0f, 5.0f, 0.0f);   z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.5f, 5.5f, 0.0f);   z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 6.0f, 0.0f);   z += 14.0f;
+
+    // --- Section 9: Final challenge - alternating narrow platforms ---
+    z += 6.0f;
+    addSeg(z, 12.0f, 0.0f, 4.5f, -2.0f);  z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.5f,  2.0f);  z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.5f, -1.5f);  z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.5f,  1.5f);  z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.5f,  0.0f);  z += 12.0f;
+
+    // --- Section 10: Final corridor with mixed obstacles ---
+    z += 6.0f;
+    addSeg(z, 40.0f, 0.0f, 7.0f, 0.0f);   z += 40.0f;
+    // Mixed pattern: some center, some sides
+    addObs(z - 35.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+    addObs(z - 28.0f, -2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 1);
+    addObs(z - 28.0f,  2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 1);
+    addObs(z - 21.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 2);
+    addObs(z - 14.0f, -2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 14.0f,  2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 7.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 1);
+
+    // --- Victory platform (wide, safe) ---
+    z += 6.0f;
+    addSeg(z, 35.0f, 0.0f, 8.0f, 0.0f);   z += 35.0f;
+
+    lv.totalLength = z;
+    return lv;
+}
+
+const Level g_level2 = BuildLevel2();
+
+Level BuildLevel3() {
+    Level lv{};
+
+    auto addSeg = [&](float startZ, float length, float topY, float width, float xOffset) {
+        if (lv.segmentCount >= kMaxSegments) return;
+        auto& s = lv.segments[lv.segmentCount++];
+        s.startZ = startZ;
+        s.length = length;
+        s.topY = topY;
+        s.width = width;
+        s.xOffset = xOffset;
+    };
+
+    auto addObs = [&](float z, float x, float y, float sx, float sy, float sz, int col) {
+        if (lv.obstacleCount >= kMaxObstacles) return;
+        auto& o = lv.obstacles[lv.obstacleCount++];
+        o.z = z; o.x = x; o.y = y;
+        o.sizeX = sx; o.sizeY = sy; o.sizeZ = sz;
+        o.colorIndex = col;
+    };
+
+    // ===== LEVEL 3: "Precision Gauntlet" =====
+    // Design: ~750 units long, focuses on precision jumping and timing.
+    // Features: Tighter gaps, more height variation, complex obstacle patterns.
+
+    float z = 0.0f;
+
+    // --- Section 1: Fast intro with early challenge ---
+    addSeg(z, 30.0f, 0.0f, 8.0f, 0.0f);   z += 30.0f;
+    z += 3.0f;
+    addSeg(z, 20.0f, 0.0f, 7.5f, 0.0f);   z += 20.0f;
+    // Early center obstacle
+    addObs(z - 10.0f, 0.0f, 0.0f, 1.1f, 2.1f, 1.1f, 0);
+
+    // --- Section 2: Precision gap sequence ---
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 6.0f, 0.0f);   z += 12.0f;
+    z += 6.0f;  // gap
+    addSeg(z, 12.0f, 0.0f, 6.0f, 0.0f);   z += 12.0f;
+    z += 6.0f;  // gap
+    addSeg(z, 12.0f, 0.0f, 5.5f, 0.0f);   z += 12.0f;
+    z += 7.0f;  // gap
+    addSeg(z, 12.0f, 0.0f, 5.5f, 0.0f);   z += 12.0f;
+
+    // --- Section 3: Height variation with obstacles ---
+    z += 6.0f;
+    addSeg(z, 18.0f, 0.5f, 6.0f, 0.0f);   z += 18.0f;
+    addObs(z - 9.0f, -2.0f, 0.5f, 0.9f, 1.9f, 0.9f, 1);
+    z += 5.0f;
+    addSeg(z, 18.0f, 1.2f, 5.5f, 1.0f);   z += 18.0f;
+    addObs(z - 9.0f, 1.0f, 1.2f, 0.9f, 1.9f, 0.9f, 2);
+    z += 5.0f;
+    addSeg(z, 18.0f, 0.5f, 5.5f, -1.0f);  z += 18.0f;
+    z += 5.0f;
+    addSeg(z, 18.0f, 0.0f, 6.0f, 0.0f);   z += 18.0f;
+
+    // --- Section 4: Narrow zigzag with side obstacles ---
+    z += 6.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, -2.0f);  z += 14.0f;
+    addObs(z - 7.0f, -2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 2.0f);   z += 14.0f;
+    addObs(z - 7.0f, 2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 1);
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, -1.5f);  z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 1.5f);   z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 0.0f);   z += 14.0f;
+
+    // --- Section 5: Elevated platform sequence ---
+    z += 6.0f;
+    addSeg(z, 16.0f, 1.5f, 5.0f, 0.0f);   z += 16.0f;
+    z += 6.0f;
+    addSeg(z, 16.0f, 2.0f, 4.5f, 0.0f);   z += 16.0f;
+    addObs(z - 8.0f, 0.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0);
+    z += 6.0f;
+    addSeg(z, 16.0f, 1.5f, 5.0f, 0.0f);   z += 16.0f;
+    z += 6.0f;
+    addSeg(z, 16.0f, 1.0f, 5.5f, 0.0f);   z += 16.0f;
+
+    // --- Section 6: Complex obstacle maze ---
+    z += 6.0f;
+    addSeg(z, 60.0f, 0.0f, 7.0f, 0.0f);   z += 60.0f;
+    // Dense pattern requiring precise navigation
+    addObs(z - 55.0f, -2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 48.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 1);
+    addObs(z - 41.0f, 2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 2);
+    addObs(z - 34.0f, -2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 27.0f, 2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+    addObs(z - 20.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 2);
+    addObs(z - 13.0f, -2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 6.0f, 2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+
+    // --- Section 7: Big gap challenge ---
+    z += 7.0f;  // gap
+    addSeg(z, 14.0f, 0.0f, 5.5f, 0.0f);   z += 14.0f;
+    z += 8.0f;  // gap
+    addSeg(z, 14.0f, 0.0f, 5.5f, 0.0f);   z += 14.0f;
+    z += 9.0f;  // bigger gap
+    addSeg(z, 16.0f, 0.0f, 5.5f, 0.0f);   z += 16.0f;
+
+    // --- Section 8: Final precision sequence ---
+    z += 6.0f;
+    addSeg(z, 12.0f, 0.5f, 4.0f, -1.5f);  z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 1.0f, 4.0f, 1.5f);   z += 12.0f;
+    addObs(z - 6.0f, 1.5f, 1.0f, 0.7f, 1.7f, 0.7f, 2);
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.5f, 4.0f, -1.0f);  z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.0f, 1.0f);   z += 12.0f;
+    z += 5.0f;
+    addSeg(z, 12.0f, 0.0f, 4.5f, 0.0f);   z += 12.0f;
+
+    // --- Section 9: Final corridor ---
+    z += 6.0f;
+    addSeg(z, 45.0f, 0.0f, 7.0f, 0.0f);   z += 45.0f;
+    // Final obstacle pattern
+    addObs(z - 40.0f, -2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 40.0f, 2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 30.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 1);
+    addObs(z - 20.0f, -2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 2);
+    addObs(z - 20.0f, 2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 2);
+    addObs(z - 10.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+
+    // --- Victory platform ---
+    z += 6.0f;
+    addSeg(z, 35.0f, 0.0f, 8.0f, 0.0f);   z += 35.0f;
+
+    lv.totalLength = z;
+    return lv;
+}
+
+const Level g_level3 = BuildLevel3();
+
+Level BuildLevel4() {
+    Level lv{};
+
+    auto addSeg = [&](float startZ, float length, float topY, float width, float xOffset) {
+        if (lv.segmentCount >= kMaxSegments) return;
+        auto& s = lv.segments[lv.segmentCount++];
+        s.startZ = startZ;
+        s.length = length;
+        s.topY = topY;
+        s.width = width;
+        s.xOffset = xOffset;
+    };
+
+    auto addObs = [&](float z, float x, float y, float sx, float sy, float sz, int col) {
+        if (lv.obstacleCount >= kMaxObstacles) return;
+        auto& o = lv.obstacles[lv.obstacleCount++];
+        o.z = z; o.x = x; o.y = y;
+        o.sizeX = sx; o.sizeY = sy; o.sizeZ = sz;
+        o.colorIndex = col;
+    };
+
+    // ===== LEVEL 4: "Stage 2 - Level 1" =====
+    // Design: ~800 units long, introduces new challenges for Stage 2.
+    // Features: Wider variety of platform sizes, more complex patterns.
+
+    float z = 0.0f;
+
+    // --- Section 1: Stage 2 intro ---
+    addSeg(z, 35.0f, 0.0f, 8.0f, 0.0f);   z += 35.0f;
+    z += 4.0f;
+    addSeg(z, 25.0f, 0.0f, 7.5f, 0.0f);   z += 25.0f;
+    // Early obstacles
+    addObs(z - 12.0f, -2.5f, 0.0f, 0.9f, 1.9f, 0.9f, 0);
+    addObs(z - 12.0f, 2.5f, 0.0f, 0.9f, 1.9f, 0.9f, 1);
+
+    // --- Section 2: Variable width platforms ---
+    z += 6.0f;
+    addSeg(z, 20.0f, 0.0f, 6.0f, 0.0f);   z += 20.0f;
+    z += 5.0f;
+    addSeg(z, 20.0f, 0.0f, 5.0f, 0.0f);   z += 20.0f;
+    addObs(z - 10.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+    z += 5.0f;
+    addSeg(z, 20.0f, 0.0f, 4.5f, 0.0f);   z += 20.0f;
+    z += 5.0f;
+    addSeg(z, 20.0f, 0.0f, 5.5f, 0.0f);   z += 20.0f;
+
+    // --- Section 3: Height variation sequence ---
+    z += 6.0f;
+    addSeg(z, 16.0f, 0.5f, 6.0f, 0.0f);   z += 16.0f;
+    z += 5.0f;
+    addSeg(z, 16.0f, 1.2f, 5.5f, 0.0f);   z += 16.0f;
+    addObs(z - 8.0f, -2.0f, 1.2f, 0.8f, 1.8f, 0.8f, 1);
+    z += 5.0f;
+    addSeg(z, 16.0f, 1.8f, 5.0f, 0.0f);   z += 16.0f;
+    z += 5.0f;
+    addSeg(z, 16.0f, 1.2f, 5.5f, 0.0f);   z += 16.0f;
+    z += 5.0f;
+    addSeg(z, 16.0f, 0.5f, 6.0f, 0.0f);   z += 16.0f;
+    z += 5.0f;
+    addSeg(z, 16.0f, 0.0f, 6.5f, 0.0f);   z += 16.0f;
+
+    // --- Section 4: Offset platform challenge ---
+    z += 6.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, -2.5f);  z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 2.5f);   z += 14.0f;
+    addObs(z - 7.0f, 2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 2);
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, -2.0f);  z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 2.0f);   z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, -1.5f);  z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 4.5f, 1.5f);   z += 14.0f;
+    z += 5.0f;
+    addSeg(z, 14.0f, 0.0f, 5.0f, 0.0f);   z += 14.0f;
+
+    // --- Section 5: Long corridor with mixed obstacles ---
+    z += 6.0f;
+    addSeg(z, 65.0f, 0.0f, 7.5f, 0.0f);   z += 65.0f;
+    // Complex pattern
+    addObs(z - 60.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+    addObs(z - 52.0f, -2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+    addObs(z - 52.0f, 2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+    addObs(z - 44.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 2);
+    addObs(z - 36.0f, -2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 36.0f, 2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 0);
+    addObs(z - 28.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 1);
+    addObs(z - 20.0f, -2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 2);
+    addObs(z - 20.0f, 2.5f, 0.0f, 0.85f, 1.8f, 0.85f, 2);
+    addObs(z - 12.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+    addObs(z - 4.0f, -2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+    addObs(z - 4.0f, 2.0f, 0.0f, 0.85f, 1.8f, 0.85f, 1);
+
+    // --- Section 6: Gap sequence ---
+    z += 7.0f;  // gap
+    addSeg(z, 15.0f, 0.0f, 6.0f, 0.0f);   z += 15.0f;
+    z += 7.0f;  // gap
+    addSeg(z, 15.0f, 0.0f, 5.5f, 0.0f);   z += 15.0f;
+    z += 8.0f;  // gap
+    addSeg(z, 15.0f, 0.0f, 5.5f, 0.0f);   z += 15.0f;
+    z += 9.0f;  // bigger gap
+    addSeg(z, 18.0f, 0.0f, 6.0f, 0.0f);   z += 18.0f;
+
+    // --- Section 7: Elevated finale ---
+    z += 6.0f;
+    addSeg(z, 18.0f, 1.5f, 5.5f, 0.0f);   z += 18.0f;
+    addObs(z - 9.0f, 0.0f, 1.5f, 1.0f, 2.0f, 1.0f, 0);
+    z += 5.0f;
+    addSeg(z, 18.0f, 2.2f, 5.0f, 0.0f);   z += 18.0f;
+    z += 5.0f;
+    addSeg(z, 18.0f, 1.5f, 5.5f, 0.0f);   z += 18.0f;
+    z += 5.0f;
+    addSeg(z, 18.0f, 0.8f, 6.0f, 0.0f);   z += 18.0f;
+    z += 5.0f;
+    addSeg(z, 18.0f, 0.0f, 6.5f, 0.0f);   z += 18.0f;
+
+    // --- Section 8: Final challenge ---
+    z += 6.0f;
+    addSeg(z, 50.0f, 0.0f, 7.0f, 0.0f);   z += 50.0f;
+    // Final obstacle pattern
+    addObs(z - 45.0f, -2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 45.0f, 2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 0);
+    addObs(z - 35.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 1);
+    addObs(z - 25.0f, -2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 2);
+    addObs(z - 25.0f, 2.0f, 0.0f, 0.8f, 1.8f, 0.8f, 2);
+    addObs(z - 15.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0);
+    addObs(z - 5.0f, -2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 1);
+    addObs(z - 5.0f, 2.5f, 0.0f, 0.8f, 1.8f, 0.8f, 1);
+
+    // --- Victory platform ---
+    z += 6.0f;
+    addSeg(z, 40.0f, 0.0f, 8.0f, 0.0f);   z += 40.0f;
+
+    lv.totalLength = z;
+    return lv;
+}
+
+const Level g_level4 = BuildLevel4();
+
+// Placeholder level (empty level for unimplemented levels)
+Level BuildPlaceholderLevel() {
+    Level lv{};
+    // Empty level - just a starting platform
+    lv.segments[0].startZ = 0.0f;
+    lv.segments[0].length = 10.0f;
+    lv.segments[0].topY = 0.0f;
+    lv.segments[0].width = 8.0f;
+    lv.segments[0].xOffset = 0.0f;
+    lv.segmentCount = 1;
+    lv.obstacleCount = 0;
+    lv.totalLength = 10.0f;
+    return lv;
+}
+
+const Level g_placeholderLevel = BuildPlaceholderLevel();
+
+}  // namespace
+
+const Level& GetLevel1() {
+    return g_level1;
+}
+
+const Level& GetLevel2() {
+    return g_level2;
+}
+
+const Level& GetLevel3() {
+    return g_level3;
+}
+
+const Level& GetLevel4() {
+    return g_level4;
+}
+
+int GetStageFromLevelIndex(int levelIndex) {
+    if (levelIndex < 1 || levelIndex > 30) return 1;
+    return ((levelIndex - 1) / 3) + 1;
+}
+
+int GetLevelInStageFromLevelIndex(int levelIndex) {
+    if (levelIndex < 1 || levelIndex > 30) return 1;
+    return ((levelIndex - 1) % 3) + 1;
+}
+
+int GetLevelIndexFromStageAndLevel(int stage, int levelInStage) {
+    if (stage < 1 || stage > 10) return 1;
+    if (levelInStage < 1 || levelInStage > 3) return 1;
+    return (stage - 1) * 3 + levelInStage;
+}
+
+bool IsLevelImplemented(int levelIndex) {
+    return levelIndex >= 1 && levelIndex <= 4;
+}
+
+const Level& GetLevelByIndex(int levelIndex) {
+    if (levelIndex == 1) return GetLevel1();
+    if (levelIndex == 2) return GetLevel2();
+    if (levelIndex == 3) return GetLevel3();
+    if (levelIndex == 4) return GetLevel4();
+    // Return placeholder for unimplemented levels
+    return g_placeholderLevel;
+}
+
+int FindSegmentUnder(const Level& level, const float playerZ, const float playerX, const float playerHalfW) {
+    for (int i = 0; i < level.segmentCount; ++i) {
+        const auto& s = level.segments[i];
+        const float endZ = s.startZ + s.length;
+        if (playerZ < s.startZ || playerZ > endZ) continue;
+        const float segLeft = s.xOffset - s.width * 0.5f;
+        const float segRight = s.xOffset + s.width * 0.5f;
+        if (playerX + playerHalfW < segLeft || playerX - playerHalfW > segRight) continue;
+        return i;
+    }
+    return -1;
+}
+
+bool CheckObstacleCollision(const Level& level, const Vector3 playerPos,
+                            const float halfW, const float halfH, const float halfD) {
+    for (int i = 0; i < level.obstacleCount; ++i) {
+        const auto& o = level.obstacles[i];
+        // AABB overlap test.
+        const float oMinX = o.x - o.sizeX * 0.5f;
+        const float oMaxX = o.x + o.sizeX * 0.5f;
+        const float oMinY = o.y;
+        const float oMaxY = o.y + o.sizeY;
+        const float oMinZ = o.z - o.sizeZ * 0.5f;
+        const float oMaxZ = o.z + o.sizeZ * 0.5f;
+
+        const float pMinX = playerPos.x - halfW;
+        const float pMaxX = playerPos.x + halfW;
+        const float pMinY = playerPos.y - halfH;
+        const float pMaxY = playerPos.y + halfH;
+        const float pMinZ = playerPos.z - halfD;
+        const float pMaxZ = playerPos.z + halfD;
+
+        if (pMaxX > oMinX && pMinX < oMaxX &&
+            pMaxY > oMinY && pMinY < oMaxY &&
+            pMaxZ > oMinZ && pMinZ < oMaxZ) {
+            return true;
+        }
+    }
+    return false;
+}
