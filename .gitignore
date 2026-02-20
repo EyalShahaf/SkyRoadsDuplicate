@@ -11,6 +11,16 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 
+# Runtime data
+leaderboard.dat
+
+# Generated screenshots
+screenshot_*.png
+test_screenshot_*.png
+
+# Windows shortcuts
+*.url
+
 # IDE / OS noise
 .DS_Store
 .vscode/
