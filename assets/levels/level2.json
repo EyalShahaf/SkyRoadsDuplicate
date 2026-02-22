@@ -1,0 +1,212 @@
+{
+    "name": "Sky Labyrinth",
+    "totalLength": 718.0,
+    "segments": [
+        {
+            "startZ": 0.0,
+            "length": 25.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 28.0,
+            "length": 20.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 53.0,
+            "length": 30.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 89.0,
+            "length": 18.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 112.0,
+            "length": 18.0,
+            "topY": 0.0,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 136.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": -0.5
+        },
+        {
+            "startZ": 157.0,
+            "length": 16.0,
+            "topY": 1.0,
+            "width": 5.5,
+            "xOffset": 0.5
+        },
+        {
+            "startZ": 178.0,
+            "length": 14.0,
+            "topY": 1.0,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 197.0,
+            "length": 14.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 216.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 236.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": -1.5
+        },
+        {
+            "startZ": 257.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 1.5
+        },
+        {
+            "startZ": 278.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": -1.0
+        },
+        {
+            "startZ": 299.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 320.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 342.0,
+            "length": 40.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 388.0,
+            "length": 35.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        }
+    ],
+    "obstacles": [
+        {
+            "z": 68.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.9,
+            "sizeY": 1.9,
+            "sizeZ": 0.9,
+            "colorIndex": 0
+        },
+        {
+            "z": 98.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.9,
+            "sizeY": 1.9,
+            "sizeZ": 0.9,
+            "colorIndex": 1
+        },
+        {
+            "z": 98.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.9,
+            "sizeY": 1.9,
+            "sizeZ": 0.9,
+            "colorIndex": 1
+        },
+        {
+            "z": 347.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        },
+        {
+            "z": 357.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 1
+        },
+        {
+            "z": 367.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 377.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        }
+    ],
+    "start": {
+        "spawnZ": 2.0,
+        "gateZ": 0.0,
+        "zoneDepth": 10.0,
+        "style": "IndustrialPylons",
+        "width": 7.0,
+        "xOffset": 0.3,
+        "topY": 0.0,
+        "pylonSpacing": 1.8,
+        "glowIntensity": 1.1,
+        "stripeCount": 6
+    },
+    "finish": {
+        "startZ": 358.0,
+        "endZ": 383.0,
+        "style": "SegmentedPylons",
+        "width": 7.0,
+        "xOffset": 0.5,
+        "topY": 0.0,
+        "glowIntensity": 1.2,
+        "hasRunway": true
+    }
+}

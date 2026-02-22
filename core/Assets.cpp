@@ -1,22 +1,22 @@
 #include "core/Assets.hpp"
-
-#include <cstdio>
-#include <cstring>
-
-#include <raylib.h>
+#include <filesystem>
+#include <string>
 
 namespace assets {
 
-const char* Path(const char* relative) {
-    // Thread-local buffer avoids heap allocation and is safe for
-    // sequential load calls (one path at a time).
-    static thread_local char buf[512];
-    std::snprintf(buf, sizeof(buf), "assets/%s", relative);
-    return buf;
+namespace fs = std::filesystem;
+
+const char *Path(const char *relative) {
+  // Using std::filesystem for robust path handling.
+  // We still return a static pointer for raylib compatibility,
+  // but the logic is now based on modern standards.
+  static thread_local std::string s_PathBuf;
+  s_PathBuf = (fs::path("assets") / relative).string();
+  return s_PathBuf.c_str();
 }
 
-bool Exists(const char* relative) {
-    return FileExists(Path(relative));
+bool Exists(const char *relative) {
+  return fs::exists(fs::path("assets") / relative);
 }
 
-}  // namespace assets
+} // namespace assets

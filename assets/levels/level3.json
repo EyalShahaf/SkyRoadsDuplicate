@@ -1,0 +1,393 @@
+{
+    "name": "Precision Gauntlet",
+    "totalLength": 417.0,
+    "segments": [
+        {
+            "startZ": 0.0,
+            "length": 50.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 53.0,
+            "length": 40.0,
+            "topY": 0.0,
+            "width": 7.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 96.0,
+            "length": 35.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 136.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 154.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 172.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 191.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 209.0,
+            "length": 18.0,
+            "topY": 0.5,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 232.0,
+            "length": 18.0,
+            "topY": 1.2,
+            "width": 5.5,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 255.0,
+            "length": 18.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": -1.0
+        },
+        {
+            "startZ": 278.0,
+            "length": 18.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 302.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": -1.5
+        },
+        {
+            "startZ": 323.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 1.5
+        },
+        {
+            "startZ": 344.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": -1.0
+        },
+        {
+            "startZ": 365.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 386.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 408.0,
+            "length": 16.0,
+            "topY": 1.5,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 430.0,
+            "length": 16.0,
+            "topY": 2.0,
+            "width": 4.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 452.0,
+            "length": 16.0,
+            "topY": 1.5,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 474.0,
+            "length": 16.0,
+            "topY": 1.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 496.0,
+            "length": 60.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 563.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 585.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 608.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 630.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": -1.0
+        },
+        {
+            "startZ": 651.0,
+            "length": 16.0,
+            "topY": 1.0,
+            "width": 5.5,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 672.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 693.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 715.0,
+            "length": 45.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 766.0,
+            "length": 35.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        }
+    ],
+    "obstacles": [
+        {
+            "z": 218.0,
+            "x": -2.0,
+            "y": 0.5,
+            "sizeX": 0.9,
+            "sizeY": 1.9,
+            "sizeZ": 0.9,
+            "colorIndex": 1
+        },
+        {
+            "z": 241.0,
+            "x": 1.0,
+            "y": 1.2,
+            "sizeX": 0.9,
+            "sizeY": 1.9,
+            "sizeZ": 0.9,
+            "colorIndex": 2
+        },
+        {
+            "z": 331.0,
+            "x": 1.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 1
+        },
+        {
+            "z": 438.0,
+            "x": 0.0,
+            "y": 2.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 0
+        },
+        {
+            "z": 501.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 0
+        },
+        {
+            "z": 511.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 1
+        },
+        {
+            "z": 521.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 2
+        },
+        {
+            "z": 531.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 0
+        },
+        {
+            "z": 541.0,
+            "x": 2.0,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 1
+        },
+        {
+            "z": 551.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 2
+        },
+        {
+            "z": 659.0,
+            "x": 1.0,
+            "y": 1.0,
+            "sizeX": 0.7,
+            "sizeY": 1.7,
+            "sizeZ": 0.7,
+            "colorIndex": 2
+        },
+        {
+            "z": 681.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        },
+        {
+            "z": 681.0,
+            "x": 2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        },
+        {
+            "z": 691.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 1
+        },
+        {
+            "z": 701.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 701.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 711.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 0
+        }
+    ],
+    "start": {
+        "spawnZ": 2.0,
+        "gateZ": 0.0,
+        "zoneDepth": 9.0,
+        "style": "PrecisionCorridor",
+        "width": 5.5,
+        "xOffset": 0.0,
+        "topY": 0.0,
+        "pylonSpacing": 2.2,
+        "glowIntensity": 1.3,
+        "stripeCount": 7
+    },
+    "finish": {
+        "startZ": 773.0,
+        "endZ": 796.0,
+        "style": "PrecisionCorridor",
+        "width": 5.5,
+        "xOffset": 0.0,
+        "topY": 0.0,
+        "glowIntensity": 1.4,
+        "hasRunway": true
+    }
+}

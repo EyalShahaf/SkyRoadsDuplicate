@@ -24,12 +24,13 @@ constexpr float kDashCooldown = 0.5f;
 // Throttle system
 constexpr float kThrottleMin = 0.0f;
 constexpr float kThrottleMax = 1.0f;
-constexpr float kThrottleChangeRate = 2.5f;  // How fast throttle changes per second
-constexpr float kThrottleSpeedMin = 12.0f;  // Minimum speed at throttle 0
-constexpr float kThrottleSpeedMax = 32.0f;  // Maximum speed at throttle 1
+constexpr float kThrottleChangeRate =
+    2.5f; // How fast throttle changes per second
+constexpr float kThrottleSpeedMin = 12.0f; // Minimum speed at throttle 0
+constexpr float kThrottleSpeedMax = 32.0f; // Maximum speed at throttle 1
 
-constexpr float kCameraBaseFov = 70.0f;  // Increased to fill screen better
-constexpr float kCameraMaxFov = 82.0f;   // Increased to fill screen better
+constexpr float kCameraBaseFov = 70.0f; // Increased to fill screen better
+constexpr float kCameraMaxFov = 82.0f;  // Increased to fill screen better
 constexpr float kCameraRollMaxDeg = 7.0f;
 constexpr float kCameraRollSmoothing = 8.0f;
 
@@ -47,37 +48,42 @@ constexpr float kLandingParticleDrag = 5.5f;
 constexpr float kBloomOverlayAlpha = 0.18f;
 
 // --- Visual scene dressing (render-only, no sim impact) ---
-constexpr int   kStarCount = 200;
-constexpr float kStarFieldRadius = 80.0f;
-constexpr float kStarFieldHeight = 60.0f;
-constexpr float kStarFieldDepth = 120.0f;
+constexpr int kStarCount = 400;
+constexpr float kStarFieldRadius = 120.0f;
+constexpr float kStarFieldHeight = 80.0f;
+constexpr float kStarFieldDepth = 200.0f;
 
-constexpr int   kDecoCubeCount = 28;
+constexpr int kCometCount = 4;
+constexpr int kNebulaCount = 6;
+constexpr float kFarFieldRadius = 300.0f;
+constexpr float kFarFieldHeight = 150.0f;
+
+constexpr int kDecoCubeCount = 28;
 constexpr float kDecoCubeSpacing = 18.0f;
 constexpr float kDecoCubeMinSize = 0.4f;
 constexpr float kDecoCubeMaxSize = 1.6f;
 constexpr float kDecoCubeSideOffset = 6.0f;
 
-constexpr int   kGridLateralLines = 22;        // cross-hatch lines visible around player
-constexpr float kGridLateralSpacing = 2.0f;     // Z spacing of lateral grid lines
-constexpr int   kGridLongitudinalCount = 7;     // longitudinal lines across width
+constexpr int kGridLateralLines = 22; // cross-hatch lines visible around player
+constexpr float kGridLateralSpacing = 2.0f; // Z spacing of lateral grid lines
+constexpr int kGridLongitudinalCount = 7;   // longitudinal lines across width
 
 constexpr float kNeonEdgeWidth = 0.18f;
 constexpr float kNeonEdgeHeight = 0.09f;
 
 constexpr float kShipModelScale = 0.7f;
 
-constexpr int   kExhaustParticleCount = 48;
+constexpr int kExhaustParticleCount = 48;
 constexpr float kExhaustParticleLife = 0.35f;
 constexpr float kExhaustSpreadX = 0.15f;
 constexpr float kExhaustSpreadY = 0.1f;
 constexpr float kExhaustBaseSpeed = 6.0f;
 
-constexpr int   kAmbientParticleCount = 80;
+constexpr int kAmbientParticleCount = 80;
 constexpr float kAmbientParticleRadius = 25.0f;
 constexpr float kAmbientParticleHeight = 18.0f;
 
-constexpr int   kMountainCount = 8;
+constexpr int kMountainCount = 8;
 constexpr float kMountainDistance = 90.0f;
 constexpr float kMountainMaxHeight = 15.0f;
 
@@ -98,12 +104,44 @@ constexpr float kScoreMultiplierMin = 1.0f;
 constexpr float kScoreMultiplierMax = 2.5f;
 
 // --- Dynamic difficulty ---
-constexpr float kDifficultyRampRate = 0.012f;       // difficulty units per second of run time
-constexpr float kDifficultyMaxCap = 1.0f;            // difficulty T clamped to [0, 1]
-constexpr float kDiffSpeedBonus = 10.0f;              // extra forward speed at max difficulty
-constexpr float kDiffHazardProbMin = 0.10f;           // gap/narrow chunk probability at difficulty 0
-constexpr float kDiffHazardProbMax = 0.55f;           // gap/narrow chunk probability at max difficulty
+constexpr float kDifficultyRampRate =
+    0.012f; // difficulty units per second of run time
+constexpr float kDifficultyMaxCap = 1.0f; // difficulty T clamped to [0, 1]
+constexpr float kDiffSpeedBonus =
+    10.0f; // extra forward speed at max difficulty
+constexpr float kDiffHazardProbMin =
+    0.10f; // gap/narrow chunk probability at difficulty 0
+constexpr float kDiffHazardProbMax =
+    0.55f; // gap/narrow chunk probability at max difficulty
 
 // --- Leaderboard ---
 constexpr int kLeaderboardSize = 10;
-}  // namespace cfg
+
+// --- Controls ---
+struct KeyConfig {
+  int left = 263;         // KEY_LEFT
+  int leftAlt = 65;       // KEY_A
+  int right = 262;        // KEY_RIGHT
+  int rightAlt = 68;      // KEY_D
+  int up = 265;           // KEY_UP
+  int upAlt = 87;         // KEY_W
+  int down = 264;         // KEY_DOWN
+  int downAlt = 83;       // KEY_S
+  int jump = 32;          // KEY_SPACE
+  int jumpAlt = 75;       // KEY_K
+  int dash = 340;         // KEY_LEFT_SHIFT
+  int dashAlt = 76;       // KEY_L
+  int pause = 80;         // KEY_P
+  int back = 256;         // KEY_ESCAPE
+  int confirm = 257;      // KEY_ENTER
+  int restartSame = 82;   // KEY_R
+  int restartNew = 78;    // KEY_N
+  int cyclePalette = 291; // KEY_F2
+  int toggleBloom = 292;  // KEY_F3
+  int screenshot = 301;   // KEY_F12
+  int backspace = 259;    // KEY_BACKSPACE
+};
+
+extern KeyConfig keys;
+
+} // namespace cfg

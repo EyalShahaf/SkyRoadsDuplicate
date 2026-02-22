@@ -13,6 +13,9 @@ compile_commands.json
 
 # Runtime data
 leaderboard.dat
+*.log
+test_output.txt
+.cache/
 
 # Generated screenshots (but allow docs/screenshots for README)
 screenshot_*.png

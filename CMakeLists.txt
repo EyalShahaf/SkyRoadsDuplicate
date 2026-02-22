@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 project(SkyRoads
     VERSION 0.1.0
@@ -49,23 +50,62 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
 )
-FetchContent_MakeAvailable(raylib)
+
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.15.0
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_Declare(
+    backward
+    GIT_REPOSITORY https://github.com/bombela/backward-cpp.git
+    GIT_TAG v1.6
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_Declare(
+    json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+)
+
+FetchContent_MakeAvailable(raylib spdlog backward json)
 
 add_executable(skyroads
     src/main.cpp
+    core/Config.cpp
     core/Rng.cpp
     core/PerfTracker.cpp
     core/Assets.cpp
+    core/Log.cpp
+    core/CrashHandler.cpp
     game/Game.cpp
+    game/Leaderboard.cpp
     sim/Sim.cpp
     sim/Level.cpp
+    sim/LevelGeometry.cpp
+    sim/LevelLoader.cpp
+    sim/LevelVariantAssigner.cpp
+    sim/BuiltinLevels.cpp
     render/Palette.cpp
+    render/SpaceObjects.cpp
+    render/SceneDressing.cpp
+    render/HudWidgets.cpp
+    render/GateRenderer.cpp
     render/Render.cpp
 )
 
 target_compile_features(skyroads PRIVATE cxx_std_20)
-target_link_libraries(skyroads PRIVATE raylib)
+target_link_libraries(skyroads PRIVATE raylib spdlog::spdlog backward nlohmann_json::nlohmann_json)
 target_include_directories(skyroads PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# backward-cpp needs some definitions to work correctly
+if(APPLE)
+    target_compile_definitions(skyroads PRIVATE BACKWARD_HAS_UNWIND=1 BACKWARD_HAS_BACKTRACE_SYMBOL=1)
+elseif(LINUX)
+    target_compile_definitions(skyroads PRIVATE BACKWARD_HAS_DW=1)
+endif()
 
 if(MSVC)
     target_compile_options(skyroads PRIVATE /W4 /permissive-)
@@ -78,15 +118,26 @@ enable_testing()
 add_executable(sim_tests
     tests/SimTests.cpp
     game/Game.cpp
+    game/Leaderboard.cpp
     sim/Sim.cpp
     sim/Level.cpp
+    sim/LevelGeometry.cpp
+    sim/LevelLoader.cpp
+    sim/LevelVariantAssigner.cpp
+    sim/BuiltinLevels.cpp
+    core/Config.cpp
     core/Rng.cpp
     core/Assets.cpp
+    core/Log.cpp
     render/Palette.cpp
+    render/SpaceObjects.cpp
+    render/SceneDressing.cpp
+    render/HudWidgets.cpp
+    render/GateRenderer.cpp
     render/Render.cpp
 )
 target_compile_features(sim_tests PRIVATE cxx_std_20)
-target_link_libraries(sim_tests PRIVATE raylib)
+target_link_libraries(sim_tests PRIVATE raylib spdlog::spdlog nlohmann_json::nlohmann_json)
 target_include_directories(sim_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
@@ -117,16 +168,27 @@ add_test(NAME screenshot_test COMMAND screenshot_test)
 add_executable(sim_runner
     tools/sim_runner.cpp
     game/Game.cpp
+    game/Leaderboard.cpp
     sim/Sim.cpp
     sim/Level.cpp
+    sim/LevelGeometry.cpp
+    sim/LevelLoader.cpp
+    sim/LevelVariantAssigner.cpp
+    sim/BuiltinLevels.cpp
     sim/Bot.cpp
+    core/Config.cpp
     core/Rng.cpp
     core/Assets.cpp
+    core/Log.cpp
     render/Palette.cpp
+    render/SpaceObjects.cpp
+    render/SceneDressing.cpp
+    render/HudWidgets.cpp
+    render/GateRenderer.cpp
     render/Render.cpp
 )
 target_compile_features(sim_runner PRIVATE cxx_std_20)
-target_link_libraries(sim_runner PRIVATE raylib)
+target_link_libraries(sim_runner PRIVATE raylib spdlog::spdlog nlohmann_json::nlohmann_json)
 target_include_directories(sim_runner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
