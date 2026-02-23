@@ -13,6 +13,7 @@ compile_commands.json
 
 # Runtime data
 leaderboard.dat
+leaderboard_v2.dat
 *.log
 test_output.txt
 .cache/
