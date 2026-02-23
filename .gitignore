@@ -30,3 +30,4 @@ test_screenshot_*.png
 .vscode/
 .idea/
 *.swp
+.gitea/.gitea/

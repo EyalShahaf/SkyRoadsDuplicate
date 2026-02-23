@@ -435,63 +435,72 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
         continue;
 
       const Color obCol = GetDecoCubeColor(pal, ob.colorIndex);
-      const Vector3 obCenter = {ob.x, ob.y + ob.sizeY * 0.5f, ob.z};
       const Vector3 obSize = {ob.sizeX, ob.sizeY, ob.sizeZ};
+
+      rlPushMatrix();
+      rlTranslatef(ob.x, ob.y + ob.sizeY * 0.5f, ob.z);
+      rlRotatef(ob.rotation, 0.0f, 1.0f, 0.0f);
+
+      const Vector3 localCenter = {0.0f, 0.0f, 0.0f};
 
       switch (ob.shape) {
       case ObstacleShape::Cube:
-        DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
-        DrawCubeWiresV(obCenter, obSize, obCol);
+        DrawCubeV(localCenter, obSize, Fade(obCol, 0.4f));
+        DrawCubeWiresV(localCenter, obSize, obCol);
         break;
       case ObstacleShape::Cylinder:
-        DrawCubeV(obCenter, obSize, Fade(obCol, 0.4f));
-        DrawCubeV({ob.x, ob.y + ob.sizeY - ob.sizeX * 0.3f, ob.z},
+        DrawCubeV(localCenter, obSize, Fade(obCol, 0.4f));
+        DrawCubeV({0.0f, ob.sizeY * 0.5f - ob.sizeX * 0.3f, 0.0f},
                   {ob.sizeX * 0.9f, ob.sizeX * 0.3f, ob.sizeZ * 0.9f},
                   Fade(obCol, 0.5f));
-        DrawCubeV({ob.x, ob.y + ob.sizeX * 0.3f, ob.z},
+        DrawCubeV({0.0f, -ob.sizeY * 0.5f + ob.sizeX * 0.3f, 0.0f},
                   {ob.sizeX * 0.9f, ob.sizeX * 0.3f, ob.sizeZ * 0.9f},
                   Fade(obCol, 0.5f));
-        DrawCubeWiresV(obCenter, obSize, obCol);
+        DrawCubeWiresV(localCenter, obSize, obCol);
         break;
       case ObstacleShape::Pyramid: {
         const float bH = ob.sizeY * 0.7f;
-        DrawCubeV({ob.x, ob.y + bH * 0.5f, ob.z}, {ob.sizeX, bH, ob.sizeZ},
-                  Fade(obCol, 0.4f));
-        DrawCubeV({ob.x, ob.y + bH + ob.sizeY * 0.15f, ob.z},
+        DrawCubeV({0.0f, -ob.sizeY * 0.5f + bH * 0.5f, 0.0f},
+                  {ob.sizeX, bH, ob.sizeZ}, Fade(obCol, 0.4f));
+        DrawCubeV({0.0f, -ob.sizeY * 0.5f + bH + ob.sizeY * 0.15f, 0.0f},
                   {ob.sizeX * 0.5f, ob.sizeY * 0.3f, ob.sizeX * 0.5f},
                   Fade(obCol, 0.5f));
-        DrawCubeWiresV({ob.x, ob.y + bH * 0.5f, ob.z}, {ob.sizeX, bH, ob.sizeZ},
-                       obCol);
+        DrawCubeWiresV({0.0f, -ob.sizeY * 0.5f + bH * 0.5f, 0.0f},
+                       {ob.sizeX, bH, ob.sizeZ}, obCol);
         break;
       }
       case ObstacleShape::Spike: {
         const Vector3 spikeSize = {ob.sizeX * 0.6f, ob.sizeY, ob.sizeZ * 0.6f};
-        DrawCubeV(obCenter, spikeSize, Fade(obCol, 0.4f));
-        DrawCubeV({ob.x, ob.y + ob.sizeY - ob.sizeX * 0.15f, ob.z},
+        DrawCubeV(localCenter, spikeSize, Fade(obCol, 0.4f));
+        DrawCubeV({0.0f, ob.sizeY * 0.5f - ob.sizeX * 0.15f, 0.0f},
                   {ob.sizeX * 0.3f, ob.sizeX * 0.3f, ob.sizeX * 0.3f},
                   Fade(obCol, 0.6f));
-        DrawCubeWiresV(obCenter, spikeSize, obCol);
+        DrawCubeWiresV(localCenter, spikeSize, obCol);
         break;
       }
       case ObstacleShape::Wall: {
         const Vector3 wallSize = {ob.sizeX, ob.sizeY * 0.6f, ob.sizeZ};
-        DrawCubeV({ob.x, ob.y + ob.sizeY * 0.3f, ob.z}, wallSize,
-                  Fade(obCol, 0.4f));
-        DrawCubeWiresV({ob.x, ob.y + ob.sizeY * 0.3f, ob.z}, wallSize, obCol);
+        DrawCubeV({0.0f, -ob.sizeY * 0.2f, 0.0f}, wallSize, Fade(obCol, 0.4f));
+        DrawCubeWiresV({0.0f, -ob.sizeY * 0.2f, 0.0f}, wallSize, obCol);
         break;
       }
       case ObstacleShape::Sphere: {
         const float avg = (ob.sizeX + ob.sizeY + ob.sizeZ) / 3.0f;
         const Vector3 s = {avg, avg, avg};
-        DrawCubeV(obCenter, s, Fade(obCol, 0.4f));
-        DrawCubeV(obCenter, {avg * 1.1f, avg * 1.1f, avg * 1.1f},
+        DrawCubeV(localCenter, s, Fade(obCol, 0.4f));
+        DrawCubeV(localCenter, {avg * 1.1f, avg * 1.1f, avg * 1.1f},
                   Fade(obCol, 0.15f));
-        DrawCubeWiresV(obCenter, s, obCol);
+        DrawCubeWiresV(localCenter, s, obCol);
         break;
       }
+      default:
+        break;
       }
-      DrawCubeV({ob.x, ob.y + 0.02f, ob.z},
+      // Deco base
+      DrawCubeV({0.0f, -ob.sizeY * 0.5f + 0.02f, 0.0f},
                 {ob.sizeX * 1.5f, 0.01f, ob.sizeZ * 1.5f}, Fade(obCol, 0.15f));
+
+      rlPopMatrix();
     }
 
     render::RenderStartLine(*lv, playerRenderPos, pal, simTime);

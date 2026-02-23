@@ -20,21 +20,27 @@ void AssignVariantsHelper(Level &lv) {
     // Variant selection: 0=Standard, 1=Thin, 2=Thick, 3=Wide, 4=Narrow,
     // 5=Glowing, 6=Matte, 7=Striped Use width and height to influence variant
     // choice
-    if (seg.width < 5.0f) {
-      seg.variantIndex = 4; // Narrow variant for narrow segments
-    } else if (seg.width > 7.0f) {
-      seg.variantIndex = 3; // Wide variant for wide segments
-    } else if (seg.topY > 1.0f) {
-      seg.variantIndex = 2; // Thick variant for elevated segments
-    } else {
-      seg.variantIndex = (hash % 8); // Cycle through all variants
+    if (seg.variantIndex == -1) {
+      if (seg.width < 5.0f) {
+        seg.variantIndex = 4; // Narrow variant for narrow segments
+      } else if (seg.width > 7.0f) {
+        seg.variantIndex = 3; // Wide variant for wide segments
+      } else if (seg.topY > 1.0f) {
+        seg.variantIndex = 2; // Thick variant for elevated segments
+      } else {
+        seg.variantIndex = (hash % 8); // Cycle through all variants
+      }
     }
 
     // Height scale: vary visual height (0.7 to 1.2)
-    seg.heightScale = 0.7f + ((hash / 8) % 6) * 0.1f;
+    if (seg.heightScale < 0.0f) {
+      seg.heightScale = 0.7f + ((hash / 8) % 6) * 0.1f;
+    }
 
     // Color tint: 0-2 for slight color variations
-    seg.colorTint = (hash / 48) % 3;
+    if (seg.colorTint == -1) {
+      seg.colorTint = (hash / 48) % 3;
+    }
   }
 
   // Assign obstacle variants
@@ -49,19 +55,27 @@ void AssignVariantsHelper(Level &lv) {
                     static_cast<uint32_t>(i * 23u);
 
     // Shape selection based on size and position
-    if (obs.sizeY > 2.0f) {
-      obs.shape = ObstacleShape::Spike; // Tall obstacles = spikes
-    } else if (obs.sizeX > obs.sizeZ * 1.5f) {
-      obs.shape = ObstacleShape::Wall; // Wide obstacles = walls
-    } else if (obs.sizeX < obs.sizeZ * 0.7f) {
-      obs.shape = ObstacleShape::Cylinder; // Pill-shaped for narrow obstacles
-    } else {
-      // Cycle through shapes based on hash
-      obs.shape = static_cast<ObstacleShape>((hash % 6));
+    if (obs.shape == ObstacleShape::Unset) {
+      if (obs.sizeY > 2.0f) {
+        obs.shape = ObstacleShape::Spike; // Tall obstacles = spikes
+      } else if (obs.sizeX > obs.sizeZ * 1.5f) {
+        obs.shape = ObstacleShape::Wall; // Wide obstacles = walls
+      } else if (obs.sizeX < obs.sizeZ * 0.7f) {
+        obs.shape = ObstacleShape::Cylinder; // Pill-shaped for narrow obstacles
+      } else {
+        // Cycle through shapes based on hash
+        obs.shape = static_cast<ObstacleShape>((hash % 6));
+      }
     }
 
     // Rotation: 0, 45, 90, or 135 degrees
-    obs.rotation = static_cast<float>((hash / 6) % 4) * 45.0f;
+    if (obs.rotation < -360.0f) {
+      obs.rotation = static_cast<float>((hash / 6) % 4) * 45.0f;
+    }
+
+    if (obs.colorIndex == -1) {
+      obs.colorIndex = (hash / 24) % 3;
+    }
   }
 }
 

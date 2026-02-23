@@ -1,0 +1,268 @@
+{
+    "name": "Stage 1 - Level 1",
+    "totalLength": 600.0,
+    "start": {
+        "spawnZ": 2.0,
+        "gateZ": 0.0,
+        "zoneDepth": 8.0,
+        "style": "NeonGate",
+        "width": 8.0,
+        "xOffset": 0.0,
+        "topY": 0.0,
+        "pylonSpacing": 2.5,
+        "glowIntensity": 1.5,
+        "stripeCount": 6
+    },
+    "finish": {
+        "startZ": 575.0,
+        "endZ": 595.0,
+        "style": "NeonGate",
+        "width": 8.0,
+        "xOffset": 0.0,
+        "topY": 0.0,
+        "glowIntensity": 1.5,
+        "hasRunway": true
+    },
+    "segments": [
+        {
+            "startZ": 0.0,
+            "length": 40.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0,
+            "variantIndex": 7,
+            "colorTint": 1
+        },
+        {
+            "startZ": 42.0,
+            "length": 30.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 76.0,
+            "length": 25.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 106.0,
+            "length": 15.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 125.0,
+            "length": 20.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 150.0,
+            "length": 20.0,
+            "topY": 0.5,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 176.0,
+            "length": 12.0,
+            "topY": 1.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 192.0,
+            "length": 12.0,
+            "topY": 1.5,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 208.0,
+            "length": 12.0,
+            "topY": 1.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 225.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": -2.0
+        },
+        {
+            "startZ": 246.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": 2.0
+        },
+        {
+            "startZ": 267.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": -1.5
+        },
+        {
+            "startZ": 289.0,
+            "length": 55.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0,
+            "variantIndex": 5,
+            "colorTint": 0
+        },
+        {
+            "startZ": 352.0,
+            "length": 18.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 375.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 4.0,
+            "xOffset": 1.5
+        },
+        {
+            "startZ": 390.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 4.0,
+            "xOffset": -1.5
+        },
+        {
+            "startZ": 405.0,
+            "length": 12.0,
+            "topY": 0.0,
+            "width": 4.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 424.0,
+            "length": 14.0,
+            "topY": 2.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 444.0,
+            "length": 14.0,
+            "topY": 2.5,
+            "width": 6.0,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 464.0,
+            "length": 14.0,
+            "topY": 2.0,
+            "width": 6.0,
+            "xOffset": -1.0
+        },
+        {
+            "startZ": 483.0,
+            "length": 30.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 513.0,
+            "length": 62.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        }
+    ],
+    "obstacles": [
+        {
+            "z": 89.0,
+            "x": 2.0,
+            "y": 0.0,
+            "sizeX": 1.2,
+            "sizeY": 1.8,
+            "sizeZ": 1.2,
+            "colorIndex": 0,
+            "shape": 0
+        },
+        {
+            "z": 160.0,
+            "x": -2.2,
+            "y": 0.5,
+            "sizeX": 0.8,
+            "sizeY": 2.0,
+            "sizeZ": 0.8,
+            "colorIndex": 1,
+            "shape": "Spike"
+        },
+        {
+            "z": 160.0,
+            "x": 2.2,
+            "y": 0.5,
+            "sizeX": 0.8,
+            "sizeY": 2.0,
+            "sizeZ": 0.8,
+            "colorIndex": 1,
+            "shape": "Spike"
+        },
+        {
+            "z": 298.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0,
+            "shape": 0
+        },
+        {
+            "z": 308.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 1,
+            "shape": 0
+        },
+        {
+            "z": 318.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2,
+            "shape": 0
+        },
+        {
+            "z": 328.0,
+            "x": 2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0,
+            "shape": 0
+        },
+        {
+            "z": 338.0,
+            "x": -1.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 2.2,
+            "sizeZ": 0.8,
+            "colorIndex": 1,
+            "shape": 0
+        }
+    ]
+}

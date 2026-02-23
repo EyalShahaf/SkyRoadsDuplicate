@@ -6,16 +6,17 @@
 struct LevelSegment {
   float startZ = 0.0f;
   float length = 10.0f;
-  float topY = 0.0f;        // top surface Y
-  float width = 8.0f;       // X width (centered on 0)
-  float xOffset = 0.0f;     // lateral shift of segment center
-  int variantIndex = 0;     // 0-7 for different visual styles
-  float heightScale = 1.0f; // Visual height multiplier (0.5x to 1.5x)
-  int colorTint = 0;        // 0-2 for color variation
+  float topY = 0.0f;         // top surface Y
+  float width = 8.0f;        // X width (centered on 0)
+  float xOffset = 0.0f;      // lateral shift of segment center
+  int variantIndex = -1;     // -1 for auto, 0-7 for different visual styles
+  float heightScale = -1.0f; // -1.0f for auto, otherwise visual multiplier
+  int colorTint = -1;        // -1 for auto, 0-2 for color variation
 };
 
 // Obstacle shape variants
 enum class ObstacleShape : int {
+  Unset = -1,   // Procedurally assigned
   Cube = 0,     // Standard rectangular cube
   Cylinder = 1, // Pill-shaped (rounded)
   Pyramid = 2,  // Triangular pyramid
@@ -32,9 +33,9 @@ struct LevelObstacle {
   float sizeX = 1.0f;
   float sizeY = 1.5f;
   float sizeZ = 1.0f;
-  int colorIndex = 0; // 0-2 for palette deco colors
-  ObstacleShape shape = ObstacleShape::Cube;
-  float rotation = 0.0f; // Rotation around Y axis (degrees)
+  int colorIndex = -1; // -1 for auto, 0-2 for palette deco colors
+  ObstacleShape shape = ObstacleShape::Unset;
+  float rotation = -999.0f; // -999.0f for auto, otherwise deg around Y
 };
 
 // Finish line style variants
@@ -144,3 +145,7 @@ float GetSpawnZ(const Level &level);
 // properties. This ensures all players see the same visual variety
 // (deterministic, not random).
 void AssignVariants(Level &level);
+
+// Dynamic test to validate all levels in assets/levels are loadable.
+// Returns true if all files in the directory were successfully parsed.
+bool TestAllLevelsAccessibility();

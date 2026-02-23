@@ -23,7 +23,7 @@ Level BuildPlaceholderLevel() {
 const Level &GetLevel1() {
   static Level lv = []() {
     Level l{};
-    if (!LoadLevelFromFile(l, "levels/level1.json")) {
+    if (!LoadLevelFromFile(l, "levels/stage1_level1.json")) {
       LOG_ERROR("Failed to load Level 1 from JSON, using empty level.");
     }
     return l;
@@ -34,7 +34,7 @@ const Level &GetLevel1() {
 const Level &GetLevel2() {
   static Level lv = []() {
     Level l{};
-    if (!LoadLevelFromFile(l, "levels/level2.json")) {
+    if (!LoadLevelFromFile(l, "levels/stage1_level2.json")) {
       LOG_ERROR("Failed to load Level 2 from JSON, using empty level.");
     }
     return l;
@@ -45,7 +45,7 @@ const Level &GetLevel2() {
 const Level &GetLevel3() {
   static Level lv = []() {
     Level l{};
-    if (!LoadLevelFromFile(l, "levels/level3.json")) {
+    if (!LoadLevelFromFile(l, "levels/stage1_level3.json")) {
       LOG_ERROR("Failed to load Level 3 from JSON, using empty level.");
     }
     return l;
@@ -56,7 +56,7 @@ const Level &GetLevel3() {
 const Level &GetLevel4() {
   static Level lv = []() {
     Level l{};
-    if (!LoadLevelFromFile(l, "levels/level4.json")) {
+    if (!LoadLevelFromFile(l, "levels/stage2_level1.json")) {
       LOG_ERROR("Failed to load Level 4 from JSON, using empty level.");
     }
     return l;
@@ -67,7 +67,7 @@ const Level &GetLevel4() {
 const Level &GetLevel5() {
   static Level lv = []() {
     Level l{};
-    if (!LoadLevelFromFile(l, "levels/level5.json")) {
+    if (!LoadLevelFromFile(l, "levels/stage2_level2.json")) {
       LOG_ERROR("Failed to load Level 5 from JSON, using empty level.");
     }
     return l;
@@ -78,7 +78,7 @@ const Level &GetLevel5() {
 const Level &GetLevel6() {
   static Level lv = []() {
     Level l{};
-    if (!LoadLevelFromFile(l, "levels/level6.json")) {
+    if (!LoadLevelFromFile(l, "levels/stage2_level3.json")) {
       LOG_ERROR("Failed to load Level 6 from JSON, using empty level.");
     }
     return l;

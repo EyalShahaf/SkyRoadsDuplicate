@@ -1,0 +1,459 @@
+{
+    "name": "Stage 2 - Level 2",
+    "totalLength": 828.0,
+    "segments": [
+        {
+            "startZ": 0.0,
+            "length": 30.0,
+            "topY": 0.0,
+            "width": 7.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 34.0,
+            "length": 22.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 61.0,
+            "length": 20.0,
+            "topY": 0.0,
+            "width": 6.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 86.0,
+            "length": 20.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 111.0,
+            "length": 20.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 136.0,
+            "length": 20.0,
+            "topY": 0.0,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 162.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 183.0,
+            "length": 16.0,
+            "topY": 1.2,
+            "width": 5.0,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 204.0,
+            "length": 16.0,
+            "topY": 1.8,
+            "width": 4.5,
+            "xOffset": -1.0
+        },
+        {
+            "startZ": 225.0,
+            "length": 16.0,
+            "topY": 1.2,
+            "width": 5.0,
+            "xOffset": 1.0
+        },
+        {
+            "startZ": 246.0,
+            "length": 16.0,
+            "topY": 0.5,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 267.0,
+            "length": 16.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 289.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": -2.5
+        },
+        {
+            "startZ": 308.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 2.5
+        },
+        {
+            "startZ": 327.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": -2.0
+        },
+        {
+            "startZ": 346.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 2.0
+        },
+        {
+            "startZ": 365.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": -1.5
+        },
+        {
+            "startZ": 384.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 1.5
+        },
+        {
+            "startZ": 403.0,
+            "length": 14.0,
+            "topY": 0.0,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 423.0,
+            "length": 70.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 500.0,
+            "length": 15.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 522.0,
+            "length": 15.0,
+            "topY": 0.0,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 545.0,
+            "length": 15.0,
+            "topY": 0.0,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 569.0,
+            "length": 18.0,
+            "topY": 0.0,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 593.0,
+            "length": 18.0,
+            "topY": 1.5,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 616.0,
+            "length": 18.0,
+            "topY": 2.2,
+            "width": 4.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 639.0,
+            "length": 18.0,
+            "topY": 1.5,
+            "width": 5.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 662.0,
+            "length": 18.0,
+            "topY": 0.8,
+            "width": 5.5,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 685.0,
+            "length": 18.0,
+            "topY": 0.0,
+            "width": 6.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 709.0,
+            "length": 55.0,
+            "topY": 0.0,
+            "width": 7.0,
+            "xOffset": 0.0
+        },
+        {
+            "startZ": 770.0,
+            "length": 40.0,
+            "topY": 0.0,
+            "width": 8.0,
+            "xOffset": 0.0
+        }
+    ],
+    "obstacles": [
+        {
+            "z": 45.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 1.1,
+            "sizeY": 2.1,
+            "sizeZ": 1.1,
+            "colorIndex": 0
+        },
+        {
+            "z": 96.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.9,
+            "sizeY": 1.9,
+            "sizeZ": 0.9,
+            "colorIndex": 1
+        },
+        {
+            "z": 170.0,
+            "x": -2.2,
+            "y": 0.5,
+            "sizeX": 0.85,
+            "sizeY": 1.85,
+            "sizeZ": 0.85,
+            "colorIndex": 1
+        },
+        {
+            "z": 191.0,
+            "x": 1.0,
+            "y": 1.2,
+            "sizeX": 0.85,
+            "sizeY": 1.85,
+            "sizeZ": 0.85,
+            "colorIndex": 2
+        },
+        {
+            "z": 211.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        },
+        {
+            "z": 232.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 1
+        },
+        {
+            "z": 253.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 331.0,
+            "x": 2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 428.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 0
+        },
+        {
+            "z": 438.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 1
+        },
+        {
+            "z": 448.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 2
+        },
+        {
+            "z": 458.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 0
+        },
+        {
+            "z": 468.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 1
+        },
+        {
+            "z": 478.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 2
+        },
+        {
+            "z": 488.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.85,
+            "sizeY": 1.8,
+            "sizeZ": 0.85,
+            "colorIndex": 0
+        },
+        {
+            "z": 602.0,
+            "x": 0.0,
+            "y": 1.5,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 0
+        },
+        {
+            "z": 729.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        },
+        {
+            "z": 729.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 0
+        },
+        {
+            "z": 739.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 1
+        },
+        {
+            "z": 749.0,
+            "x": -2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 749.0,
+            "x": 2.0,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 2
+        },
+        {
+            "z": 759.0,
+            "x": 0.0,
+            "y": 0.0,
+            "sizeX": 1.0,
+            "sizeY": 2.0,
+            "sizeZ": 1.0,
+            "colorIndex": 0
+        },
+        {
+            "z": 769.0,
+            "x": -2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 1
+        },
+        {
+            "z": 769.0,
+            "x": 2.5,
+            "y": 0.0,
+            "sizeX": 0.8,
+            "sizeY": 1.8,
+            "sizeZ": 0.8,
+            "colorIndex": 1
+        }
+    ],
+    "start": {
+        "spawnZ": 2.0,
+        "gateZ": 0.0,
+        "zoneDepth": 10.0,
+        "style": "NeonGate",
+        "width": 8.0,
+        "xOffset": 0.0,
+        "topY": 0.0
+    },
+    "finish": {
+        "startZ": 770.0,
+        "endZ": 800.0,
+        "style": "NeonGate",
+        "width": 8.0,
+        "xOffset": 0.0,
+        "topY": 0.0,
+        "hasRunway": true
+    }
+}

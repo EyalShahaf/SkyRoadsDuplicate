@@ -2,6 +2,7 @@
 
 #include "core/Assets.hpp"
 #include "core/Log.hpp"
+#include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -107,6 +108,9 @@ bool LoadLevelFromFile(Level &level, const char *relativePath) {
         s.topY = s_json.value("topY", 0.0f);
         s.width = s_json.value("width", 8.0f);
         s.xOffset = s_json.value("xOffset", 0.0f);
+        s.variantIndex = s_json.value("variantIndex", -1);
+        s.heightScale = s_json.value("heightScale", -1.0f);
+        s.colorTint = s_json.value("colorTint", -1);
       }
     }
 
@@ -122,9 +126,9 @@ bool LoadLevelFromFile(Level &level, const char *relativePath) {
         o.sizeX = o_json.value("sizeX", 1.0f);
         o.sizeY = o_json.value("sizeY", 1.5f);
         o.sizeZ = o_json.value("sizeZ", 1.0f);
-        o.colorIndex = o_json.value("colorIndex", 0);
-        o.shape = GetObstacleShape(o_json, "shape", ObstacleShape::Cube);
-        o.rotation = o_json.value("rotation", 0.0f);
+        o.colorIndex = o_json.value("colorIndex", -1);
+        o.shape = GetObstacleShape(o_json, "shape", ObstacleShape::Unset);
+        o.rotation = o_json.value("rotation", -999.0f);
       }
     }
 
@@ -166,4 +170,40 @@ bool LoadLevelFromFile(Level &level, const char *relativePath) {
     LOG_ERROR("JSON parse error in {}: {}", relativePath, e.what());
     return false;
   }
+}
+
+bool TestAllLevelsAccessibility() {
+  namespace fs = std::filesystem;
+  std::string levelsDir = assets::Path("levels");
+
+  if (!fs::exists(levelsDir) || !fs::is_directory(levelsDir)) {
+    LOG_ERROR("Levels directory not found: {}", levelsDir);
+    return false;
+  }
+
+  bool allOk = true;
+  int count = 0;
+  int failed = 0;
+
+  LOG_INFO("--- Starting Dynamic Level Accessibility Test ---");
+
+  for (const auto &entry : fs::directory_iterator(levelsDir)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".json") {
+      std::string filename = entry.path().filename().string();
+      std::string relativePath = "levels/" + filename;
+
+      Level dummy;
+      if (LoadLevelFromFile(dummy, relativePath.c_str())) {
+        LOG_INFO("[PASS] {}", filename);
+      } else {
+        LOG_ERROR("[FAIL] {}", filename);
+        allOk = false;
+        failed++;
+      }
+      count++;
+    }
+  }
+
+  LOG_INFO("--- Level Test Complete: {} total, {} failed ---", count, failed);
+  return allOk;
 }
