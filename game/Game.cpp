@@ -3,6 +3,7 @@
 #include "core/Config.hpp"
 #include "core/Rng.hpp"
 #include "render/Render.hpp"
+#include "sim/EndlessLevelGenerator.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -34,22 +35,46 @@ void ResetRun(Game &game, const uint32_t seed, int levelIndex) {
   game.rngState = game.runSeed;
   game.currentLevelIndex = levelIndex;
   game.currentStage = (levelIndex - 1) / 3 + 1;
+  game.isEndlessMode = (levelIndex == 0);  // 0 = Endless Mode
 
-  game.level = &GetLevelByIndex(levelIndex);
-  game.isPlaceholderLevel = (game.level->finish.style == FinishStyle::None);
+  if (game.isEndlessMode) {
+    // Initialize Endless Mode
+    game.endlessGenerator.Initialize(game.runSeed);
+    game.level = &game.endlessGenerator.GetLevel();
+    game.isPlaceholderLevel = false;
+    game.endlessStartZ = 0.0f;
+    
+    float spawnZ = GetSpawnZ(*game.level);
+    game.player.position = {0.0f, 1.0f, spawnZ};
+    game.player.velocity = {0.0f, 0.0f, cfg::kForwardSpeed};
+    game.player.grounded = false;
+    
+    // Ensure player starts grounded if spawning on a segment
+    int segIdx =
+        FindSegmentUnder(*game.level, spawnZ, 0.0f, cfg::kPlayerWidth * 0.5f);
+    if (segIdx >= 0) {
+      game.player.position.y =
+          game.level->segments[segIdx].topY + cfg::kPlayerHalfHeight;
+      game.player.grounded = true;
+    }
+  } else {
+    // Regular level
+    game.level = &GetLevelByIndex(levelIndex);
+    game.isPlaceholderLevel = (game.level->finish.style == FinishStyle::None);
 
-  float spawnZ = GetSpawnZ(*game.level);
-  game.player.position = {0.0f, 1.0f, spawnZ};
-  game.player.velocity = {0.0f, 0.0f, cfg::kForwardSpeed};
-  game.player.grounded = false;
+    float spawnZ = GetSpawnZ(*game.level);
+    game.player.position = {0.0f, 1.0f, spawnZ};
+    game.player.velocity = {0.0f, 0.0f, cfg::kForwardSpeed};
+    game.player.grounded = false;
 
-  // Ensure player starts grounded if spawning on a segment
-  int segIdx =
-      FindSegmentUnder(*game.level, spawnZ, 0.0f, cfg::kPlayerWidth * 0.5f);
-  if (segIdx >= 0) {
-    game.player.position.y =
-        game.level->segments[segIdx].topY + cfg::kPlayerHalfHeight;
-    game.player.grounded = true;
+    // Ensure player starts grounded if spawning on a segment
+    int segIdx =
+        FindSegmentUnder(*game.level, spawnZ, 0.0f, cfg::kPlayerWidth * 0.5f);
+    if (segIdx >= 0) {
+      game.player.position.y =
+          game.level->segments[segIdx].topY + cfg::kPlayerHalfHeight;
+      game.player.grounded = true;
+    }
   }
 
   game.previousPlayer = game.player;
@@ -113,9 +138,9 @@ void ReadInput(Game &game) {
     }
   } else if (game.screen == GameScreen::MainMenu) {
     if (IsKeyPressed(k.up))
-      game.menuSelection = (game.menuSelection + 2) % 3;
+      game.menuSelection = (game.menuSelection + 3) % 4;  // 4 menu items now
     if (IsKeyPressed(k.down))
-      game.menuSelection = (game.menuSelection + 1) % 3;
+      game.menuSelection = (game.menuSelection + 1) % 4;
     if (IsKeyPressed(k.confirm)) {
       if (game.menuSelection == 0) {
         // Start Game - Go to Level Select
@@ -123,8 +148,23 @@ void ReadInput(Game &game) {
         game.levelSelectStage = 1;
         game.levelSelectLevel = 1;
       } else if (game.menuSelection == 1) {
-        game.screen = GameScreen::Leaderboard;
+        // Endless Mode
+        ResetRun(game, (uint32_t)std::time(nullptr), 0);
       } else if (game.menuSelection == 2) {
+        game.screen = GameScreen::Leaderboard;
+        // Find first available leaderboard (prefer Endless Mode, then level 1, etc.)
+        if (game.leaderboards.find(0) != game.leaderboards.end()) {
+          game.currentLeaderboardIndex = 0;
+        } else {
+          // Find first available leaderboard
+          for (int i = 1; i <= 30; ++i) {
+            if (game.leaderboards.find(i) != game.leaderboards.end()) {
+              game.currentLeaderboardIndex = i;
+              break;
+            }
+          }
+        }
+      } else if (game.menuSelection == 3) {
         game.screen = GameScreen::ExitConfirm;
         game.exitConfirmSelection = 0;
       }
@@ -212,6 +252,47 @@ void ReadInput(Game &game) {
   } else if (game.screen == GameScreen::Leaderboard) {
     if (IsKeyPressed(k.back) || IsKeyPressed(k.confirm))
       game.screen = GameScreen::MainMenu;
+    // Navigate between leaderboards with left/right keys
+    if (IsKeyPressed(k.left)) {
+      // Find previous leaderboard
+      int targetIndex = game.currentLeaderboardIndex;
+      int attempts = 0;
+      do {
+        targetIndex--;
+        if (targetIndex < 0) {
+          // Wrap to highest available index
+          int maxIndex = 0;
+          for (const auto& [idx, _] : game.leaderboards) {
+            if (idx > maxIndex) maxIndex = idx;
+          }
+          targetIndex = maxIndex;
+        }
+        attempts++;
+      } while (game.leaderboards.find(targetIndex) == game.leaderboards.end() && attempts < 32);
+      if (targetIndex >= 0 && game.leaderboards.find(targetIndex) != game.leaderboards.end()) {
+        game.currentLeaderboardIndex = targetIndex;
+      }
+    }
+    if (IsKeyPressed(k.right)) {
+      // Find next leaderboard
+      int targetIndex = game.currentLeaderboardIndex;
+      int attempts = 0;
+      do {
+        targetIndex++;
+        // Wrap to 0 (Endless Mode) if we go past the highest index
+        int maxIndex = 0;
+        for (const auto& [idx, _] : game.leaderboards) {
+          if (idx > maxIndex) maxIndex = idx;
+        }
+        if (targetIndex > maxIndex) {
+          targetIndex = 0;
+        }
+        attempts++;
+      } while (game.leaderboards.find(targetIndex) == game.leaderboards.end() && attempts < 32);
+      if (targetIndex >= 0 && targetIndex <= 30 && game.leaderboards.find(targetIndex) != game.leaderboards.end()) {
+        game.currentLeaderboardIndex = targetIndex;
+      }
+    }
   } else if (game.screen == GameScreen::ExitConfirm) {
     if (IsKeyPressed(k.left) || IsKeyPressed(k.up))
       game.exitConfirmSelection = 0;

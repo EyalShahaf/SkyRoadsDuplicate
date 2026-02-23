@@ -684,10 +684,10 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
                   Fade(BLACK, 0.4f));
     DrawText("S K Y R O A D S", cx - 180, cy - 140, 44, pal.uiAccent);
     DrawText("Endless Runner", cx - 90, cy - 90, 20, pal.uiText);
-    const char *items[] = {"Start Game", "Leaderboard", "Exit"};
-    for (int i = 0; i < 3; ++i) {
+    const char *items[] = {"Start Game", "Endless Mode", "Leaderboard", "Exit"};
+    for (int i = 0; i < 4; ++i) {
       const bool sel = (game.menuSelection == i);
-      const int y = cy - 20 + i * 40;
+      const int y = cy - 40 + i * 40;
       if (sel)
         DrawRectangleRounded({static_cast<float>(cx - 140),
                               static_cast<float>(y - 6), 280.0f, 36.0f},
@@ -776,17 +776,44 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
     DrawRectangle(0, 0, cfg::kScreenWidth, cfg::kScreenHeight,
                   Fade(BLACK, 0.5f));
     DrawText("L E A D E R B O A R D", cx - 200, 60, 36, pal.uiAccent);
-    if (game.leaderboardCount == 0) {
+    
+    // Get current leaderboard
+    int currentIndex = game.currentLeaderboardIndex;
+    auto it = game.leaderboards.find(currentIndex);
+    int leaderboardCount = 0;
+    const std::array<LeaderboardEntry, cfg::kLeaderboardSize>* currentLeaderboard = nullptr;
+    
+    if (it != game.leaderboards.end()) {
+      currentLeaderboard = &it->second;
+      auto countIt = game.leaderboardCounts.find(currentIndex);
+      leaderboardCount = (countIt != game.leaderboardCounts.end()) ? countIt->second : 0;
+    }
+    
+    // Display leaderboard name
+    char leaderboardName[64];
+    if (currentIndex == 0) {
+      std::snprintf(leaderboardName, sizeof(leaderboardName), "Endless Mode");
+    } else {
+      int stage = GetStageFromLevelIndex(currentIndex);
+      int level = GetLevelInStageFromLevelIndex(currentIndex);
+      std::snprintf(leaderboardName, sizeof(leaderboardName), "Stage %d - Level %d", stage, level);
+    }
+    DrawText(leaderboardName, cx - 120, 100, 20, pal.uiAccent);
+    
+    // Navigation hint
+    DrawText("< LEFT / RIGHT >", cx - 80, 125, 14, Fade(pal.uiText, 0.7f));
+    
+    if (leaderboardCount == 0 || !currentLeaderboard) {
       DrawText("No scores yet. Go play!", cx - 130, cy - 20, 22, pal.uiText);
     } else {
-      DrawText("#   Name                Score       Time", cx - 260, 120, 15,
+      DrawText("#   Name                Score       Time", cx - 260, 150, 15,
                Fade(pal.uiText, 0.5f));
-      for (int i = 0; i < game.leaderboardCount; ++i) {
-        const auto &e = game.leaderboard[i];
+      for (int i = 0; i < leaderboardCount; ++i) {
+        const auto &e = (*currentLeaderboard)[i];
         char line[128];
         std::snprintf(line, sizeof(line), "%-2d  %-18s  %-10.0f  %.1fs", i + 1,
                       e.name, e.score, e.runTime);
-        DrawText(line, cx - 260, 146 + i * 28, 17,
+        DrawText(line, cx - 260, 176 + i * 28, 17,
                  (i == 0) ? pal.uiAccent : pal.uiText);
       }
     }
@@ -965,8 +992,12 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
     DrawRectangleRounded({10.0f, 10.0f, 280.0f, 80.0f}, 0.08f, 8,
                          Fade(pal.uiPanel, 0.8f));
     char levelText[32];
-    std::snprintf(levelText, sizeof(levelText), "Level %d",
-                  game.currentLevelIndex);
+    if (game.isEndlessMode) {
+      std::snprintf(levelText, sizeof(levelText), "Endless Mode");
+    } else {
+      std::snprintf(levelText, sizeof(levelText), "Level %d",
+                    game.currentLevelIndex);
+    }
     DrawText(levelText, 20, 18, 16, Fade(pal.uiAccent, 0.9f));
     char scoreText[96];
     std::snprintf(scoreText, sizeof(scoreText), "Score: %.0f",

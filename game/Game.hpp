@@ -2,9 +2,12 @@
 
 #include <array>
 #include <cstdint>
+#include <map>
+#include <string>
 
 #include "core/Config.hpp"
 #include "sim/Level.hpp"
+#include "sim/EndlessLevelGenerator.hpp"
 #include <raylib.h>
 
 enum class GameScreen {
@@ -117,6 +120,17 @@ struct Game {
     int levelSelectStage = 1;  // Currently selected stage (1-10)
     int levelSelectLevel = 1;  // Currently selected level within stage (1-3)
 
+    // Endless Mode state
+    bool isEndlessMode = false;
+    float endlessStartZ = 0.0f;  // Starting Z position for distance calculation
+    EndlessLevelGenerator endlessGenerator{};  // Procedural level generator for Endless Mode
+
+    // Multiple leaderboards: key is level index (0 = Endless Mode, 1-30 = regular levels)
+    std::map<int, std::array<LeaderboardEntry, cfg::kLeaderboardSize>> leaderboards{};
+    std::map<int, int> leaderboardCounts{};  // Count for each leaderboard
+    int currentLeaderboardIndex = 0;  // Currently viewed leaderboard (0 = Endless, 1-30 = levels)
+    
+    // Legacy single leaderboard (for backward compatibility during migration)
     std::array<LeaderboardEntry, cfg::kLeaderboardSize> leaderboard{};
     int leaderboardCount = 0;
 
@@ -124,6 +138,7 @@ struct Game {
     bool hasPendingScore = false;
     LeaderboardEntry pendingEntry{};
     int pendingEntryIndex = -1;  // Where it will be inserted
+    int pendingLeaderboardIndex = 0;  // Which leaderboard this entry is for
     char nameInputBuffer[20] = "";  // Current name being typed
     int nameInputLength = 0;
 

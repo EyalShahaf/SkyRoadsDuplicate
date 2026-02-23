@@ -178,6 +178,12 @@ void SimStep(Game &game, const float dt) {
     return;
   }
 
+  // Extend endless level if needed
+  if (game.isEndlessMode) {
+    game.endlessGenerator.ExtendLevel(player.position.z, game.difficultyT);
+    game.level = &game.endlessGenerator.GetLevel();
+  }
+
   // --- Level-based collision ---
   const Level *lv = game.level;
   if (lv) {
@@ -194,8 +200,8 @@ void SimStep(Game &game, const float dt) {
       return;
     }
 
-    // Check level completion (crossing finish zone).
-    if (CheckFinishZoneCrossing(*lv, player.position.z)) {
+    // Check level completion (crossing finish zone) - skip for Endless Mode
+    if (!game.isEndlessMode && CheckFinishZoneCrossing(*lv, player.position.z)) {
       game.levelComplete = true;
       game.runActive = false;
       game.runOver = true;
