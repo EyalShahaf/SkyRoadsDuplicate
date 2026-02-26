@@ -12,30 +12,41 @@ The default `/usr/bin/c++` symlink points to Clang 18, which searches for GCC 14
 
 The project's `CMakeLists.txt` sets `BACKWARD_HAS_DW=1` on Linux but doesn't link `-ldw`. Pass `-DCMAKE_EXE_LINKER_FLAGS="-ldw"` to cmake to fix the link step.
 
-### Build command
+### Build
+
+Build the game by running the build script from the repository root:
 
 ```bash
-cmake -S . -B build \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CXX_COMPILER=clang++ \
-  -DCMAKE_C_COMPILER=clang \
-  -DCMAKE_CXX_FLAGS="--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13" \
-  -DCMAKE_C_FLAGS="--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13" \
-  -DCMAKE_EXE_LINKER_FLAGS="-ldw" \
-  -DFETCHCONTENT_QUIET=ON -Wno-dev
-
-cmake --build build --config Release --parallel $(nproc)
+./scripts/build.sh
 ```
 
-### Running the game (requires display)
+On Cursor Cloud VMs, the update script handles compiler and linker flags automatically. See the "Compiler gotcha" section above if you need to invoke cmake manually.
+
+### Running the game
+
+Run the game using the run script:
+
+```bash
+./scripts/run.sh
+```
 
 The game needs an X11 display. In headless cloud VMs, start Xvfb first:
 
 ```bash
 Xvfb :99 -screen 0 1280x720x24 &
 export DISPLAY=:99
-./build/skyroads
+./scripts/run.sh
 ```
+
+### Gameplay
+
+You control a spaceship that moves forward automatically through levels. The goal is to survive as long as possible by evading obstacles.
+
+- **Up / Down arrow keys** — control the ship's forward velocity (speed up / slow down)
+- **Left / Right arrow keys** — strafe the ship sideways to dodge obstacles
+- **Space** — jump
+
+Menu navigation uses the **arrow keys** (Up/Down/Left/Right) to move the selection and **Enter** or **Space** to confirm.
 
 ### Tests
 
