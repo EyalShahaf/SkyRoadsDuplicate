@@ -5,6 +5,7 @@
 
 #include "core/Assets.hpp"
 #include "core/Config.hpp"
+#include "core/Log.hpp"
 #include "game/Game.hpp"
 #include "render/GateRenderer.hpp"
 #include "render/HudWidgets.hpp"
@@ -279,14 +280,25 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
                          Fade(pal.voidTint, 0.3f));
 
   // Scissor 3D to viewport (exclude cockpit HUD)
+  // Both rlViewport and rlScissor use OpenGL coordinates (bottom-left origin)
+  // To position at top of screen: y = screenHeight - viewportHeight
   if (game.screen == GameScreen::Playing) {
-    // Set viewport to full screen, scissor will clip to top portion
-    rlViewport(0, 0, cfg::kScreenWidth, cfg::kScreenHeight);
+    const int viewportY = cfg::kScreenHeight - viewportHeight;
+    rlViewport(0, viewportY, cfg::kScreenWidth, viewportHeight);
     rlEnableScissorTest();
-    rlScissor(0, 0, cfg::kScreenWidth, viewportHeight);
+    rlScissor(0, viewportY, cfg::kScreenWidth, viewportHeight);
+  } else {
+    rlViewport(0, 0, cfg::kScreenWidth, cfg::kScreenHeight);
   }
 
   BeginMode3D(game.camera);
+  
+  // Re-apply viewport and scissor after BeginMode3D in case it was reset
+  if (game.screen == GameScreen::Playing) {
+    const int viewportY = cfg::kScreenHeight - viewportHeight;
+    rlViewport(0, viewportY, cfg::kScreenWidth, viewportHeight);
+    rlScissor(0, viewportY, cfg::kScreenWidth, viewportHeight);
+  }
 
   // Space environment
   render::RenderSpaceObjects(game.camera, pal, simTime);
@@ -669,8 +681,11 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
 
   EndMode3D();
 
-  if (game.screen == GameScreen::Playing)
+  // Always reset viewport to full screen for 2D rendering after 3D
+  rlViewport(0, 0, cfg::kScreenWidth, cfg::kScreenHeight);
+  if (game.screen == GameScreen::Playing) {
     rlDisableScissorTest();
+  }
 
   // ── Bloom overlay ─────────────────────────────────────────────────────────
   if (game.bloomEnabled) {
