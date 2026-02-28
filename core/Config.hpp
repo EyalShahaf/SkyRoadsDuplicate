@@ -117,6 +117,34 @@ constexpr float kDiffHazardProbMax =
 // --- Leaderboard ---
 constexpr int kLeaderboardSize = 10;
 
+// --- Power-up system ---
+// Power-up spawn rates
+constexpr float kPowerUpSpawnBaseProb = 0.08f;
+constexpr float kPowerUpSpawnMaxProb = 0.12f;
+constexpr float kPowerUpMinSpacing = 10.0f;
+constexpr float kPowerUpSpawnHeightMin = 1.5f;
+constexpr float kPowerUpSpawnHeightMax = 2.0f;
+
+// Effect durations (seconds)
+constexpr float kShieldDuration = 0.0f;  // Until consumed
+constexpr float kScoreMultiplierDuration = 10.0f;
+constexpr float kSpeedBoostDuration = 10.0f;
+constexpr float kGhostModeDuration = 8.0f;
+constexpr float kObstacleRevealDuration = 12.0f;
+constexpr float kSpeedDrainDuration = 10.0f;
+
+// Effect magnitudes
+constexpr float kSpeedBoostAmount = 10.0f;
+constexpr float kSpeedDrainAmount = 8.0f;
+constexpr float kScoreMultiplierBoost = 1.5f;
+constexpr float kObstacleRevealRange = 15.0f;
+constexpr float kObstacleSurgeMultiplier = 1.5f;
+
+// Power-up text rendering
+constexpr float kPowerUpTextHeight = 0.18f;  // Text size in world units
+constexpr float kPowerUpTextOffset = 0.35f;   // Height above icon
+constexpr float kPowerUpTextPulseSpeed = 3.0f; // Animation speed for text pulse
+
 // --- Controls ---
 struct KeyConfig {
   int left = 263;         // KEY_LEFT

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+#include "sim/PowerUp.hpp"
 
 // A platform segment the player can stand on.
 struct LevelSegment {
@@ -90,12 +91,15 @@ struct StartZone {
 // Fixed-capacity level data. No heap, fully constexpr-friendly.
 constexpr int kMaxSegments = 64;
 constexpr int kMaxObstacles = 64;
+constexpr int kMaxPowerUps = 32;
 
 struct Level {
   LevelSegment segments[kMaxSegments]{};
   int segmentCount = 0;
   LevelObstacle obstacles[kMaxObstacles]{};
   int obstacleCount = 0;
+  PowerUp powerUps[kMaxPowerUps]{};
+  int powerUpCount = 0;
   float totalLength = 0.0f; // Z extent of entire level
   FinishZone finish{}; // Finish line zone (zero-initialized = no finish for
                        // placeholders)

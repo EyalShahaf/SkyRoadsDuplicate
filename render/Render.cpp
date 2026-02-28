@@ -15,6 +15,7 @@
 #include "render/SpaceObjects.hpp"
 #include "rlgl.h"
 #include "sim/Level.hpp"
+#include "sim/PowerUp.hpp"
 
 namespace render {
 
@@ -528,6 +529,93 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
       rlPopMatrix();
     }
 
+    // Power-ups
+    for (int pi = 0; pi < lv->powerUpCount; ++pi) {
+      const auto &pu = lv->powerUps[pi];
+      if (!pu.active) continue;
+      if (std::fabs(pu.z - playerRenderPos.z) > 60.0f) continue;
+      
+      // Animate power-up (bob and rotate)
+      const float bobAmount = 0.15f;
+      const float bobSpeed = 2.5f;
+      const float bobY = pu.y + std::sin(simTime * bobSpeed + pu.bobOffset) * bobAmount;
+      const float rotSpeed = 45.0f;  // degrees per second
+      const float currentRot = pu.rotation + simTime * rotSpeed;
+      
+      // Determine color based on type
+      Color puColor;
+      bool isDebuff = IsDebuff(pu.type);
+      if (isDebuff) {
+        // Red/orange for debuffs
+        puColor = Color{255, 100, 100, 255};
+      } else {
+        // Blue/green for power-ups
+        if (pu.type == PowerUpType::Shield) {
+          puColor = Color{100, 200, 255, 255};  // Light blue
+        } else if (pu.type == PowerUpType::ScoreMultiplier) {
+          puColor = Color{100, 255, 200, 255};  // Light green
+        } else if (pu.type == PowerUpType::SpeedBoostShield || pu.type == PowerUpType::SpeedBoostGhost) {
+          puColor = Color{150, 150, 255, 255};  // Purple-blue
+        } else {
+          puColor = Color{200, 200, 255, 255};  // Light blue
+        }
+      }
+      
+      // Render icon (simple geometric shape)
+      const float iconSize = 0.5f;
+      const float glowSize = iconSize * 1.3f;
+      
+      rlPushMatrix();
+      rlTranslatef(pu.x, bobY, pu.z);
+      rlRotatef(currentRot, 0.0f, 1.0f, 0.0f);
+      
+      // Glow effect
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {glowSize, glowSize, glowSize},
+                Fade(puColor, 0.2f));
+      
+      // Main icon (cube for most, sphere for some)
+      if (pu.type == PowerUpType::ObstacleReveal || pu.type == PowerUpType::ObstacleSurge) {
+        // Sphere shape
+        DrawCubeV({0.0f, 0.0f, 0.0f}, {iconSize, iconSize, iconSize},
+                  Fade(puColor, 0.8f));
+        DrawCubeV({0.0f, 0.0f, 0.0f}, {iconSize * 1.1f, iconSize * 1.1f, iconSize * 1.1f},
+                  Fade(puColor, 0.15f));
+      } else {
+        // Cube shape
+        DrawCubeV({0.0f, 0.0f, 0.0f}, {iconSize, iconSize, iconSize},
+                  Fade(puColor, 0.8f));
+        DrawCubeWiresV({0.0f, 0.0f, 0.0f}, {iconSize, iconSize, iconSize},
+                       puColor);
+      }
+      
+      rlPopMatrix();
+      
+      // Text labels will be rendered in 2D after EndMode3D
+    }
+    
+    // Obstacle reveal visualization
+    if (game.obstacleRevealActive && lv) {
+      const float revealRange = cfg::kObstacleRevealRange;
+      const float revealStartZ = playerRenderPos.z;
+      const float revealEndZ = playerRenderPos.z + revealRange;
+      
+      for (int oi = 0; oi < lv->obstacleCount; ++oi) {
+        const auto &ob = lv->obstacles[oi];
+        if (ob.z < revealStartZ || ob.z > revealEndZ) continue;
+        
+        // Draw pulsing outline around revealed obstacles
+        const float pulse = 0.7f + 0.3f * std::sin(simTime * 4.0f);
+        const Color revealColor = Color{255, 255, 100, static_cast<unsigned char>(255 * pulse)};
+        const Vector3 obSize = {ob.sizeX * 1.2f, ob.sizeY * 1.2f, ob.sizeZ * 1.2f};
+        
+        DrawCubeWiresV({ob.x, ob.y + ob.sizeY * 0.5f, ob.z}, obSize, revealColor);
+        // Add glow effect
+        DrawCubeV({ob.x, ob.y + ob.sizeY * 0.5f, ob.z}, 
+                  {ob.sizeX * 1.3f, ob.sizeY * 1.3f, ob.sizeZ * 1.3f},
+                  Fade(revealColor, 0.1f * pulse));
+      }
+    }
+
     render::RenderStartLine(*lv, playerRenderPos, pal, simTime);
     render::RenderFinishLine(*lv, playerRenderPos, pal, simTime);
   } // if (lv)
@@ -685,6 +773,58 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
   rlViewport(0, 0, cfg::kScreenWidth, cfg::kScreenHeight);
   if (game.screen == GameScreen::Playing) {
     rlDisableScissorTest();
+  }
+
+  // ── Power-up text labels (2D rendering) ────────────────────────────────────
+  if (game.screen == GameScreen::Playing && lv) {
+    for (int pi = 0; pi < lv->powerUpCount; ++pi) {
+      const auto &pu = lv->powerUps[pi];
+      if (!pu.active) continue;
+      if (std::fabs(pu.z - playerRenderPos.z) > 60.0f) continue;
+      
+      const char* label = GetPowerUpLabel(pu.type);
+      if (!label || label[0] == '\0') continue;
+      
+      // Animate text position (match the 3D bob animation)
+      const float bobAmount = 0.15f;
+      const float bobSpeed = 2.5f;
+      const float bobY = pu.y + std::sin(simTime * bobSpeed + pu.bobOffset) * bobAmount;
+      const float textY = bobY + cfg::kPowerUpTextOffset;
+      
+      // Convert world position to screen coordinates
+      Vector3 textPos = {pu.x, textY, pu.z};
+      Vector2 screenPos = GetWorldToScreen(textPos, game.camera);
+      
+      // Only render if on screen and in front of camera
+      if (screenPos.x >= 0 && screenPos.x < cfg::kScreenWidth &&
+          screenPos.y >= 0 && screenPos.y < cfg::kScreenHeight &&
+          textPos.z > playerRenderPos.z - 5.0f) {
+        const float textPulse = 1.0f + 0.1f * std::sin(simTime * cfg::kPowerUpTextPulseSpeed);
+        const int fontSize = static_cast<int>(14.0f * textPulse);
+        
+        // Determine color based on type
+        Color textColor;
+        bool isDebuff = IsDebuff(pu.type);
+        if (isDebuff) {
+          textColor = Color{255, 150, 100, 255};  // Red/orange for debuffs
+        } else {
+          textColor = Color{150, 220, 255, 255};  // Light blue for power-ups
+        }
+        
+        // Draw text with outline for visibility
+        const int outlineWidth = 1;
+        for (int ox = -outlineWidth; ox <= outlineWidth; ++ox) {
+          for (int oy = -outlineWidth; oy <= outlineWidth; ++oy) {
+            if (ox != 0 || oy != 0) {
+              DrawText(label, static_cast<int>(screenPos.x) + ox, 
+                      static_cast<int>(screenPos.y) + oy, fontSize, BLACK);
+            }
+          }
+        }
+        DrawText(label, static_cast<int>(screenPos.x), 
+                static_cast<int>(screenPos.y), fontSize, textColor);
+      }
+    }
   }
 
   // ── Bloom overlay ─────────────────────────────────────────────────────────
@@ -1034,6 +1174,42 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
     char multText[64];
     std::snprintf(multText, sizeof(multText), "x%.2f", game.scoreMultiplier);
     DrawText(multText, 20, 58, 14, pal.uiAccent);
+    
+    // Active effects UI (top-right corner)
+    if (game.activeEffectCount > 0) {
+      const float effectsX = cfg::kScreenWidth - 200.0f;
+      float effectsY = 20.0f;
+      DrawRectangleRounded({effectsX - 10.0f, effectsY - 10.0f, 190.0f, 
+                            static_cast<float>(game.activeEffectCount * 30 + 20)}, 
+                           0.08f, 8, Fade(pal.uiPanel, 0.8f));
+      
+      for (int i = 0; i < game.activeEffectCount; ++i) {
+        const auto &effect = game.activeEffects[i];
+        if (effect.type == PowerUpType::None) continue;
+        
+        const char* label = GetPowerUpLabel(effect.type);
+        const bool isDebuff = IsDebuff(effect.type);
+        Color effectColor = isDebuff ? Color{255, 150, 150, 255} : Color{150, 255, 200, 255};
+        
+        // Effect label
+        DrawText(label, effectsX, effectsY, 14, effectColor);
+        
+        // Timer/progress
+        if (effect.type == PowerUpType::Shield) {
+          if (!effect.consumed) {
+            DrawText("READY", effectsX + 80, effectsY, 12, Color{100, 255, 100, 255});
+          } else {
+            DrawText("USED", effectsX + 80, effectsY, 12, Color{200, 200, 200, 200});
+          }
+        } else if (effect.timer > 0.0f) {
+          char timerText[16];
+          std::snprintf(timerText, sizeof(timerText), "%.1fs", effect.timer);
+          DrawText(timerText, effectsX + 80, effectsY, 12, Fade(pal.uiText, 0.8f));
+        }
+        
+        effectsY += 28.0f;
+      }
+    }
   }
 
   // ── Perf overlay ─────────────────────────────────────────────────────────

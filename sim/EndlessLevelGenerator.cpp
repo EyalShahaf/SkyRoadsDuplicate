@@ -1,6 +1,7 @@
 #include "sim/EndlessLevelGenerator.hpp"
 #include "core/Rng.hpp"
 #include "core/Config.hpp"
+#include "sim/PowerUp.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -14,6 +15,7 @@ namespace {
   constexpr float kSegmentWidthMax = 10.0f;
   constexpr float kSafeStartZone = 30.0f;  // Empty zone at start (no obstacles)
   constexpr float kMinObstacleSpacing = 3.0f;  // Minimum distance between obstacles
+  constexpr float kMinPowerUpSpacing = 10.0f;  // Minimum distance between power-ups
 }
 
 void EndlessLevelGenerator::Initialize(uint32_t seed) {
@@ -21,11 +23,14 @@ void EndlessLevelGenerator::Initialize(uint32_t seed) {
   currentZ = 0.0f;
   difficultyT = 0.0f;
   lastObstacleZ = -999.0f;  // Reset obstacle tracking
+  lastPowerUpZ = -999.0f;  // Reset power-up tracking
+  obstacleSurgePending = false;  // Reset obstacle surge
   
   // Clear level
   level = Level{};
   level.segmentCount = 0;
   level.obstacleCount = 0;
+  level.powerUpCount = 0;
   
   // Create start zone
   level.start.spawnZ = 0.0f;
@@ -91,7 +96,12 @@ void EndlessLevelGenerator::GenerateChunk(float startZ, float difficulty) {
       
       // Add obstacles based on difficulty (but not in safe start zone)
       // Reduced obstacle density for better spacing
-      const float obstacleDensity = 0.08f + difficulty * 0.3f;  // Slightly reduced from before
+      float obstacleDensity = 0.08f + difficulty * 0.3f;
+      // Apply obstacle surge multiplier if pending
+      if (obstacleSurgePending) {
+        obstacleDensity *= cfg::kObstacleSurgeMultiplier;
+        obstacleSurgePending = false;  // Consume the surge
+      }
       const int obstacleCount = (int)(segmentLength * obstacleDensity * NextFloat(0.6f, 1.2f));
       
       // Try to place obstacles with proper spacing
@@ -133,6 +143,30 @@ void EndlessLevelGenerator::GenerateChunk(float startZ, float difficulty) {
           AddObstacle(candidateZ, obstacleX, obstacleY, sizeX, sizeY, sizeZ, shape);
           lastObstacleZ = candidateZ;
           placedCount++;
+        }
+      }
+      
+      // Spawn power-ups/debuffs on segments (not gaps)
+      // Spawn probability scales with difficulty
+      const float powerUpSpawnProb = cfg::kPowerUpSpawnBaseProb + 
+        (cfg::kPowerUpSpawnMaxProb - cfg::kPowerUpSpawnBaseProb) * difficulty;
+      
+      if (NextFloat01() < powerUpSpawnProb) {
+        // Try to place a power-up in this segment
+        const float candidateZ = currentZ + NextFloat(2.0f, segmentLength - 2.0f);
+        
+        // Skip if in safe start zone or too close to last power-up
+        if (candidateZ >= kSafeStartZone && 
+            candidateZ >= lastPowerUpZ + kMinPowerUpSpacing) {
+          const float spawnX = NextFloat(-segmentWidth * 0.3f, segmentWidth * 0.3f) + xOffset;
+          const float spawnY = topY + NextFloat(cfg::kPowerUpSpawnHeightMin, cfg::kPowerUpSpawnHeightMax);
+          
+          // Check if position is safe (not blocked by obstacles)
+          if (IsPowerUpPositionSafe(candidateZ, spawnX, currentZ, segmentLength, segmentWidth, xOffset)) {
+            PowerUpType type = SelectPowerUpType(difficulty);
+            AddPowerUp(candidateZ, spawnX, spawnY, type);
+            lastPowerUpZ = candidateZ;
+          }
         }
       }
       
@@ -187,4 +221,63 @@ float EndlessLevelGenerator::NextFloat(float min, float max) {
 
 int EndlessLevelGenerator::NextInt(int min, int max) {
   return min + (int)(NextFloat01() * (max - min + 1));
+}
+
+void EndlessLevelGenerator::AddPowerUp(float z, float x, float y, PowerUpType type) {
+  if (level.powerUpCount >= kMaxPowerUps) {
+    return;  // Level is full
+  }
+  
+  auto& pu = level.powerUps[level.powerUpCount++];
+  pu.z = z;
+  pu.x = x;
+  pu.y = y;
+  pu.type = type;
+  pu.active = true;
+  pu.bobOffset = NextFloat01() * 2.0f * 3.14159f;  // Random phase for animation
+  pu.rotation = NextFloat01() * 360.0f;  // Random starting rotation
+}
+
+PowerUpType EndlessLevelGenerator::SelectPowerUpType(float difficulty) {
+  // 70% power-ups, 30% debuffs
+  const float powerUpRatio = 0.7f;
+  const bool isPowerUp = NextFloat01() < powerUpRatio;
+  
+  if (isPowerUp) {
+    // Choose from power-ups
+    const float rand = NextFloat01();
+    if (rand < 0.2f) return PowerUpType::Shield;
+    else if (rand < 0.4f) return PowerUpType::ScoreMultiplier;
+    else if (rand < 0.6f) return PowerUpType::SpeedBoostShield;
+    else if (rand < 0.8f) return PowerUpType::SpeedBoostGhost;
+    else return PowerUpType::ObstacleReveal;
+  } else {
+    // Choose from debuffs
+    return (NextFloat01() < 0.5f) ? PowerUpType::SpeedDrain : PowerUpType::ObstacleSurge;
+  }
+}
+
+bool EndlessLevelGenerator::IsPowerUpPositionSafe(float z, float x, float segmentStartZ, float segmentLength, float segmentWidth, float xOffset) {
+  // Check if position overlaps with any obstacles in this segment
+  const float checkRadius = 1.5f;  // Safety radius around power-up
+  
+  for (int i = 0; i < level.obstacleCount; ++i) {
+    const auto& obs = level.obstacles[i];
+    
+    // Only check obstacles in this segment
+    if (obs.z < segmentStartZ || obs.z > segmentStartZ + segmentLength) {
+      continue;
+    }
+    
+    // Check X and Z distance
+    const float dx = std::abs(obs.x - x);
+    const float dz = std::abs(obs.z - z);
+    const float minDist = checkRadius + std::max(obs.sizeX, obs.sizeZ) * 0.5f;
+    
+    if (dx < minDist && dz < minDist) {
+      return false;  // Too close to an obstacle
+    }
+  }
+  
+  return true;  // Position is safe
 }

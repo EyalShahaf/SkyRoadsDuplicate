@@ -92,6 +92,19 @@ void ResetRun(Game &game, const uint32_t seed, int levelIndex) {
   game.throttle = 0.5f;
   game.input = {}; // Clear any buffered inputs
 
+  // Reset power-up state
+  game.activeEffectCount = 0;
+  for (auto &effect : game.activeEffects) {
+    effect = ActiveEffect{};
+  }
+  game.hasShield = false;
+  game.ghostMode = false;
+  game.speedBoostAmount = 0.0f;
+  game.speedDrainAmount = 0.0f;
+  game.scoreMultiplierBoost = 1.0f;
+  game.obstacleRevealActive = false;
+  game.obstacleSurgePending = false;
+
   for (auto &p : game.landingParticles)
     p.active = false;
 

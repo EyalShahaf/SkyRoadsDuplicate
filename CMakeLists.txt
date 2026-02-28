@@ -89,6 +89,7 @@ add_executable(skyroads
     sim/LevelVariantAssigner.cpp
     sim/BuiltinLevels.cpp
     sim/EndlessLevelGenerator.cpp
+    sim/PowerUp.cpp
     render/Palette.cpp
     render/SpaceObjects.cpp
     render/SceneDressing.cpp
@@ -127,6 +128,7 @@ add_executable(sim_tests
     sim/LevelVariantAssigner.cpp
     sim/BuiltinLevels.cpp
     sim/EndlessLevelGenerator.cpp
+    sim/PowerUp.cpp
     core/Config.cpp
     core/Rng.cpp
     core/Assets.cpp
@@ -178,6 +180,7 @@ add_executable(sim_runner
     sim/LevelVariantAssigner.cpp
     sim/BuiltinLevels.cpp
     sim/EndlessLevelGenerator.cpp
+    sim/PowerUp.cpp
     sim/Bot.cpp
     core/Config.cpp
     core/Rng.cpp

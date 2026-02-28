@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sim/Level.hpp"
+#include "sim/PowerUp.hpp"
 #include <cstdint>
 
 // Endless Mode level generator that procedurally generates level chunks
@@ -12,6 +13,8 @@ struct EndlessLevelGenerator {
   float difficultyT = 0.0f;  // Current difficulty (0.0 to 1.0+)
   Level level{};  // The dynamically generated level
   float lastObstacleZ = -999.0f;  // Track last obstacle Z for spacing
+  float lastPowerUpZ = -999.0f;  // Track last power-up Z for spacing
+  bool obstacleSurgePending = false;  // Obstacle surge debuff pending
   
   // Generate initial level chunk
   void Initialize(uint32_t seed);
@@ -29,6 +32,9 @@ private:
   void GenerateChunk(float startZ, float difficulty);
   void AddSegment(float startZ, float length, float topY, float width, float xOffset);
   void AddObstacle(float z, float x, float y, float sizeX, float sizeY, float sizeZ, ObstacleShape shape);
+  void AddPowerUp(float z, float x, float y, PowerUpType type);
+  PowerUpType SelectPowerUpType(float difficulty);
+  bool IsPowerUpPositionSafe(float z, float x, float segmentStartZ, float segmentLength, float segmentWidth, float xOffset);
   float NextFloat01();
   float NextFloat(float min, float max);
   int NextInt(int min, int max);

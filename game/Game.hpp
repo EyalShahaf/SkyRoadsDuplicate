@@ -8,6 +8,7 @@
 #include "core/Config.hpp"
 #include "sim/Level.hpp"
 #include "sim/EndlessLevelGenerator.hpp"
+#include "sim/PowerUp.hpp"
 #include <raylib.h>
 
 enum class GameScreen {
@@ -153,6 +154,17 @@ struct Game {
     float screenshotNotificationTimer = 0.0f;
     char screenshotPath[256] = {};
     bool screenshotRequested = false;
+
+    // Power-up/debuff system
+    std::array<ActiveEffect, 8> activeEffects{};  // Multiple effects can stack
+    int activeEffectCount = 0;
+    bool hasShield = false;
+    bool ghostMode = false;
+    float speedBoostAmount = 0.0f;
+    float speedDrainAmount = 0.0f;
+    float scoreMultiplierBoost = 1.0f;
+    bool obstacleRevealActive = false;
+    bool obstacleSurgePending = false;  // Applied to next chunk
 };
 
 void InitGame(Game& game, uint32_t seed);
