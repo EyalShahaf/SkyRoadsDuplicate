@@ -11,6 +11,7 @@ struct EndlessLevelGenerator {
   float currentZ = 0.0f;  // Current end of generated level
   float difficultyT = 0.0f;  // Current difficulty (0.0 to 1.0+)
   Level level{};  // The dynamically generated level
+  float lastObstacleZ = -999.0f;  // Track last obstacle Z for spacing
   
   // Generate initial level chunk
   void Initialize(uint32_t seed);
@@ -21,6 +22,8 @@ struct EndlessLevelGenerator {
   
   // Get the current level (for use in game)
   const Level& GetLevel() const { return level; }
+  // Get mutable level reference (for variant assignment)
+  Level& GetLevelMutable() { return level; }
   
 private:
   void GenerateChunk(float startZ, float difficulty);

@@ -181,6 +181,8 @@ void SimStep(Game &game, const float dt) {
   // Extend endless level if needed
   if (game.isEndlessMode) {
     game.endlessGenerator.ExtendLevel(player.position.z, game.difficultyT);
+    // Assign visual variants to newly generated segments
+    AssignVariants(game.endlessGenerator.GetLevelMutable());
     game.level = &game.endlessGenerator.GetLevel();
   }
 

@@ -12,14 +12,15 @@ namespace {
   constexpr float kMaxGapLength = 8.0f;
   constexpr float kSegmentWidthMin = 6.0f;
   constexpr float kSegmentWidthMax = 10.0f;
-  constexpr float kObstacleSpacingMin = 3.0f;
-  constexpr float kObstacleSpacingMax = 12.0f;
+  constexpr float kSafeStartZone = 30.0f;  // Empty zone at start (no obstacles)
+  constexpr float kMinObstacleSpacing = 3.0f;  // Minimum distance between obstacles
 }
 
 void EndlessLevelGenerator::Initialize(uint32_t seed) {
   rngState = (seed == 0) ? 1u : seed;
   currentZ = 0.0f;
   difficultyT = 0.0f;
+  lastObstacleZ = -999.0f;  // Reset obstacle tracking
   
   // Clear level
   level = Level{};
@@ -37,6 +38,9 @@ void EndlessLevelGenerator::Initialize(uint32_t seed) {
   
   // Generate initial chunk
   GenerateChunk(0.0f, 0.0f);
+  
+  // Assign visual variants to initial segments
+  AssignVariants(level);
 }
 
 void EndlessLevelGenerator::ExtendLevel(float playerZ, float difficulty) {
@@ -85,31 +89,51 @@ void EndlessLevelGenerator::GenerateChunk(float startZ, float difficulty) {
       
       AddSegment(currentZ, segmentLength, topY, segmentWidth, xOffset);
       
-      // Add obstacles based on difficulty
-      const float obstacleDensity = 0.1f + difficulty * 0.4f;  // More obstacles as difficulty increases
-      const int obstacleCount = (int)(segmentLength * obstacleDensity * NextFloat(0.5f, 1.5f));
+      // Add obstacles based on difficulty (but not in safe start zone)
+      // Reduced obstacle density for better spacing
+      const float obstacleDensity = 0.08f + difficulty * 0.3f;  // Slightly reduced from before
+      const int obstacleCount = (int)(segmentLength * obstacleDensity * NextFloat(0.6f, 1.2f));
       
-      for (int j = 0; j < obstacleCount; ++j) {
-        const float obstacleZ = currentZ + NextFloat(1.0f, segmentLength - 1.0f);
-        const float obstacleX = NextFloat(-segmentWidth * 0.4f, segmentWidth * 0.4f) + xOffset;
-        const float obstacleY = topY;
+      // Try to place obstacles with proper spacing
+      int placedCount = 0;
+      int attempts = 0;
+      const int maxAttempts = obstacleCount * 3;  // Allow multiple attempts per obstacle
+      
+      while (placedCount < obstacleCount && attempts < maxAttempts) {
+        attempts++;
         
-        // Obstacle size varies
-        const float sizeX = NextFloat(0.8f, 1.5f);
-        const float sizeY = NextFloat(1.2f, 2.5f);
-        const float sizeZ = NextFloat(0.8f, 1.5f);
+        // Try a random position in the segment
+        const float candidateZ = currentZ + NextFloat(1.0f, segmentLength - 1.0f);
         
-        // Random obstacle shape
-        ObstacleShape shape = ObstacleShape::Unset;
-        const float shapeRand = NextFloat01();
-        if (shapeRand < 0.3f) shape = ObstacleShape::Cube;
-        else if (shapeRand < 0.5f) shape = ObstacleShape::Cylinder;
-        else if (shapeRand < 0.65f) shape = ObstacleShape::Pyramid;
-        else if (shapeRand < 0.8f) shape = ObstacleShape::Spike;
-        else if (shapeRand < 0.9f) shape = ObstacleShape::Wall;
-        else shape = ObstacleShape::Sphere;
+        // Skip if in safe start zone
+        if (candidateZ < kSafeStartZone) {
+          continue;
+        }
         
-        AddObstacle(obstacleZ, obstacleX, obstacleY, sizeX, sizeY, sizeZ, shape);
+        // Check if this position is far enough from the last obstacle
+        if (candidateZ >= lastObstacleZ + kMinObstacleSpacing) {
+          const float obstacleX = NextFloat(-segmentWidth * 0.4f, segmentWidth * 0.4f) + xOffset;
+          const float obstacleY = topY;
+          
+          // Obstacle size varies
+          const float sizeX = NextFloat(0.8f, 1.5f);
+          const float sizeY = NextFloat(1.2f, 2.5f);
+          const float sizeZ = NextFloat(0.8f, 1.5f);
+          
+          // Random obstacle shape
+          ObstacleShape shape = ObstacleShape::Unset;
+          const float shapeRand = NextFloat01();
+          if (shapeRand < 0.3f) shape = ObstacleShape::Cube;
+          else if (shapeRand < 0.5f) shape = ObstacleShape::Cylinder;
+          else if (shapeRand < 0.65f) shape = ObstacleShape::Pyramid;
+          else if (shapeRand < 0.8f) shape = ObstacleShape::Spike;
+          else if (shapeRand < 0.9f) shape = ObstacleShape::Wall;
+          else shape = ObstacleShape::Sphere;
+          
+          AddObstacle(candidateZ, obstacleX, obstacleY, sizeX, sizeY, sizeZ, shape);
+          lastObstacleZ = candidateZ;
+          placedCount++;
+        }
       }
       
       currentZ += segmentLength;

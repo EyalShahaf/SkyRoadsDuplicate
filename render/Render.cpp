@@ -280,6 +280,8 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
 
   // Scissor 3D to viewport (exclude cockpit HUD)
   if (game.screen == GameScreen::Playing) {
+    // Set viewport to full screen, scissor will clip to top portion
+    rlViewport(0, 0, cfg::kScreenWidth, cfg::kScreenHeight);
     rlEnableScissorTest();
     rlScissor(0, 0, cfg::kScreenWidth, viewportHeight);
   }
@@ -306,21 +308,27 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
 
       const float segEndZ = seg.startZ + seg.length;
       const float halfW = seg.width * 0.5f;
-      const float visualH = cfg::kPlatformHeight * seg.heightScale;
+      // Safety check: if heightScale is negative (unassigned), use default value
+      const float effectiveHeightScale = (seg.heightScale < 0.0f) ? 1.0f : seg.heightScale;
+      const float visualH = cfg::kPlatformHeight * effectiveHeightScale;
 
+      // Safety check: clamp colorTint to valid range (0-2)
+      const int safeColorTint = (seg.colorTint < 0) ? 0 : (seg.colorTint > 2 ? 2 : seg.colorTint);
       Color platformSideCol =
-          render::ApplyColorTint(pal.platformSide, seg.colorTint);
+          render::ApplyColorTint(pal.platformSide, safeColorTint);
       Color platformTopCol =
-          render::ApplyColorTint(pal.platformTop, seg.colorTint);
+          render::ApplyColorTint(pal.platformTop, safeColorTint);
       Color platformWireCol =
-          render::ApplyColorTint(pal.platformWire, seg.colorTint);
+          render::ApplyColorTint(pal.platformWire, safeColorTint);
       Color neonEdgeCol = pal.neonEdge;
       Color neonGlowCol = pal.neonEdgeGlow;
       float wireAlpha = 0.5f;
       float glowIntensity = 0.15f;
       bool drawGrid = true;
 
-      switch (seg.variantIndex) {
+      // Safety check: clamp variantIndex to valid range (0-7)
+      const int safeVariantIndex = (seg.variantIndex < 0) ? 0 : (seg.variantIndex > 7 ? 7 : seg.variantIndex);
+      switch (safeVariantIndex) {
       case 1:
         wireAlpha = 0.3f;
         break;
@@ -386,7 +394,7 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
                 Fade(neonGlowCol, glowIntensity));
 
       // Striped variant
-      if (seg.variantIndex == 7) {
+      if (safeVariantIndex == 7) {
         constexpr int stripeCount = 8;
         for (int st = 0; st < stripeCount; ++st) {
           const float t =
@@ -434,16 +442,21 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
       if (std::fabs(ob.z - playerRenderPos.z) > 60.0f)
         continue;
 
-      const Color obCol = GetDecoCubeColor(pal, ob.colorIndex);
+      // Safety checks: clamp colorIndex to valid range (0-2), rotation to valid range
+      const int safeColorIndex = (ob.colorIndex < 0) ? 0 : (ob.colorIndex > 2 ? 2 : ob.colorIndex);
+      const float safeRotation = (ob.rotation < -360.0f) ? 0.0f : ob.rotation;
+      // Safety check: default to Cube if shape is Unset
+      const ObstacleShape safeShape = (ob.shape == ObstacleShape::Unset) ? ObstacleShape::Cube : ob.shape;
+      const Color obCol = GetDecoCubeColor(pal, safeColorIndex);
       const Vector3 obSize = {ob.sizeX, ob.sizeY, ob.sizeZ};
 
       rlPushMatrix();
       rlTranslatef(ob.x, ob.y + ob.sizeY * 0.5f, ob.z);
-      rlRotatef(ob.rotation, 0.0f, 1.0f, 0.0f);
+      rlRotatef(safeRotation, 0.0f, 1.0f, 0.0f);
 
       const Vector3 localCenter = {0.0f, 0.0f, 0.0f};
 
-      switch (ob.shape) {
+      switch (safeShape) {
       case ObstacleShape::Cube:
         DrawCubeV(localCenter, obSize, Fade(obCol, 0.4f));
         DrawCubeWiresV(localCenter, obSize, obCol);
