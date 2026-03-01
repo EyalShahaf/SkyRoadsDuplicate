@@ -345,18 +345,8 @@ void SimStep(Game &game, const float dt) {
     AssignVariants(game.endlessGenerator.GetLevelMutable());
     game.level = &game.endlessGenerator.GetLevel();
     
-    // Update power-up animations (use mutable reference)
-    Level &mutableLevel = game.endlessGenerator.GetLevelMutable();
-    for (int i = 0; i < mutableLevel.powerUpCount; ++i) {
-      auto &pu = mutableLevel.powerUps[i];
-      if (pu.active) {
-        // Update rotation (will be used in rendering)
-        pu.rotation += 45.0f * dt;  // 45 degrees per second
-        if (pu.rotation >= 360.0f) {
-          pu.rotation -= 360.0f;
-        }
-      }
-    }
+    // Note: Power-up rotation is now calculated in render using simTime
+    // No need to update rotation here - it's computed from simTime in Render.cpp
   }
 
   // --- Level-based collision ---

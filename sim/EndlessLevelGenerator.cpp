@@ -159,7 +159,7 @@ void EndlessLevelGenerator::GenerateChunk(float startZ, float difficulty) {
         if (candidateZ >= kSafeStartZone && 
             candidateZ >= lastPowerUpZ + kMinPowerUpSpacing) {
           const float spawnX = NextFloat(-segmentWidth * 0.3f, segmentWidth * 0.3f) + xOffset;
-          const float spawnY = topY + NextFloat(cfg::kPowerUpSpawnHeightMin, cfg::kPowerUpSpawnHeightMax);
+          const float spawnY = topY + 0.2f;  // Small offset above ground, not floating
           
           // Check if position is safe (not blocked by obstacles)
           if (IsPowerUpPositionSafe(candidateZ, spawnX, currentZ, segmentLength, segmentWidth, xOffset)) {

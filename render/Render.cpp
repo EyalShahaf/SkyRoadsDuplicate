@@ -535,62 +535,214 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
       if (!pu.active) continue;
       if (std::fabs(pu.z - playerRenderPos.z) > 60.0f) continue;
       
-      // Animate power-up (bob and rotate)
-      const float bobAmount = 0.15f;
-      const float bobSpeed = 2.5f;
-      const float bobY = pu.y + std::sin(simTime * bobSpeed + pu.bobOffset) * bobAmount;
-      const float rotSpeed = 45.0f;  // degrees per second
-      const float currentRot = pu.rotation + simTime * rotSpeed;
-      
-      // Determine color based on type
-      Color puColor;
-      bool isDebuff = IsDebuff(pu.type);
-      if (isDebuff) {
-        // Red/orange for debuffs
-        puColor = Color{255, 100, 100, 255};
-      } else {
-        // Blue/green for power-ups
-        if (pu.type == PowerUpType::Shield) {
-          puColor = Color{100, 200, 255, 255};  // Light blue
-        } else if (pu.type == PowerUpType::ScoreMultiplier) {
-          puColor = Color{100, 255, 200, 255};  // Light green
-        } else if (pu.type == PowerUpType::SpeedBoostShield || pu.type == PowerUpType::SpeedBoostGhost) {
-          puColor = Color{150, 150, 255, 255};  // Purple-blue
-        } else {
-          puColor = Color{200, 200, 255, 255};  // Light blue
+      // Find which segment this power-up is on to get ground level
+      float groundY = pu.y;
+      for (int si = 0; si < lv->segmentCount; ++si) {
+        const auto &seg = lv->segments[si];
+        if (pu.z >= seg.startZ && pu.z <= seg.startZ + seg.length) {
+          if (std::abs(pu.x - seg.xOffset) < seg.width * 0.5f) {
+            groundY = seg.topY;
+            break;
+          }
         }
       }
       
-      // Render icon (simple geometric shape)
-      const float iconSize = 0.5f;
-      const float glowSize = iconSize * 1.3f;
+      // Stationary position on ground (no bobbing)
+      const float renderY = groundY + 0.2f;  // Small offset above ground
+      const float rotSpeed = 30.0f;  // Slower rotation (degrees per second)
+      const float currentRot = pu.rotation + simTime * rotSpeed;
+      
+      // Scale pulsing animation (breathing effect)
+      const float scalePulse = 1.0f + 0.15f * std::sin(simTime * 2.5f);
+      
+      // Determine distinct colors and shapes based on type
+      Color puColor;
+      Color glowColor;
+      Color ringColor;
+      float iconSize = 0.6f;
+      bool useSphere = false;
+      bool usePyramid = false;
+      bool useCylinder = false;
+      
+      switch (pu.type) {
+        case PowerUpType::Shield:
+          puColor = Color{100, 220, 255, 255};  // Bright cyan
+          glowColor = Color{150, 240, 255, 255};
+          ringColor = Color{200, 250, 255, 255};  // Very bright for rings
+          iconSize = 0.7f;
+          useSphere = true;
+          break;
+        case PowerUpType::ScoreMultiplier:
+          puColor = Color{100, 255, 180, 255};  // Bright green
+          glowColor = Color{150, 255, 220, 255};
+          ringColor = Color{200, 255, 240, 255};
+          iconSize = 0.65f;
+          useCylinder = true;
+          break;
+        case PowerUpType::SpeedBoostShield:
+          puColor = Color{220, 150, 255, 255};  // Bright purple
+          glowColor = Color{240, 180, 255, 255};
+          ringColor = Color{250, 220, 255, 255};
+          iconSize = 0.75f;
+          usePyramid = true;
+          break;
+        case PowerUpType::SpeedBoostGhost:
+          puColor = Color{255, 220, 100, 255};  // Bright orange
+          glowColor = Color{255, 240, 150, 255};
+          ringColor = Color{255, 250, 200, 255};
+          iconSize = 0.7f;
+          useSphere = true;
+          break;
+        case PowerUpType::ObstacleReveal:
+          puColor = Color{255, 255, 120, 255};  // Bright yellow
+          glowColor = Color{255, 255, 200, 255};
+          ringColor = Color{255, 255, 240, 255};
+          iconSize = 0.65f;
+          useCylinder = true;
+          break;
+        case PowerUpType::SpeedDrain:
+          puColor = Color{255, 100, 100, 255};  // Bright red
+          glowColor = Color{255, 180, 180, 255};
+          ringColor = Color{255, 220, 220, 255};
+          iconSize = 0.7f;
+          usePyramid = true;
+          break;
+        case PowerUpType::ObstacleSurge:
+          puColor = Color{255, 140, 0, 255};  // Bright orange-red
+          glowColor = Color{255, 200, 100, 255};
+          ringColor = Color{255, 230, 150, 255};
+          iconSize = 0.75f;
+          useSphere = true;
+          break;
+        default:
+          puColor = Color{200, 200, 200, 255};
+          glowColor = Color{220, 220, 220, 255};
+          ringColor = Color{240, 240, 240, 255};
+          break;
+      }
+      
+      // Strong pulsing glow effect (much more intense)
+      const float glowPulse = 0.7f + 0.3f * std::sin(simTime * 3.5f);
+      const float outerGlowSize = iconSize * scalePulse * (2.8f + 0.5f * glowPulse);
+      const float middleGlowSize = iconSize * scalePulse * (2.2f + 0.3f * glowPulse);
+      const float innerGlowSize = iconSize * scalePulse * 1.6f;
+      const float coreGlowSize = iconSize * scalePulse * 1.2f;
       
       rlPushMatrix();
-      rlTranslatef(pu.x, bobY, pu.z);
+      rlTranslatef(pu.x, renderY, pu.z);
+      
+      // Rotating rings (multiple layers for dramatic effect)
+      const float ringRot1 = simTime * 60.0f;  // Fast rotation
+      const float ringRot2 = simTime * -45.0f;  // Counter-rotation
+      const float ringSize1 = iconSize * scalePulse * 1.5f;
+      const float ringSize2 = iconSize * scalePulse * 1.8f;
+      
+      // Outer ring (largest, brightest)
+      rlPushMatrix();
+      rlRotatef(ringRot1, 0.0f, 1.0f, 0.0f);
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {ringSize2, 0.1f, ringSize2},
+                ringColor);  // Full opacity ring
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {ringSize2 * 1.1f, 0.05f, ringSize2 * 1.1f},
+                Fade(ringColor, 0.6f));
+      rlPopMatrix();
+      
+      // Middle ring
+      rlPushMatrix();
+      rlRotatef(ringRot2, 0.0f, 1.0f, 0.0f);
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {ringSize1, 0.08f, ringSize1},
+                Fade(ringColor, 0.9f));
+      rlPopMatrix();
+      
+      // Multi-layer glow (4 layers for maximum visibility)
+      // Outer glow (largest, most transparent)
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {outerGlowSize, outerGlowSize, outerGlowSize},
+                Fade(glowColor, 0.7f * glowPulse));
+      
+      // Middle glow
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {middleGlowSize, middleGlowSize, middleGlowSize},
+                Fade(glowColor, 0.8f * glowPulse));
+      
+      // Inner glow
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {innerGlowSize, innerGlowSize, innerGlowSize},
+                Fade(glowColor, 0.9f * glowPulse));
+      
+      // Core glow (brightest)
+      DrawCubeV({0.0f, 0.0f, 0.0f}, {coreGlowSize, coreGlowSize, coreGlowSize},
+                glowColor);  // Full opacity
+      
+      // Rotate the main icon
       rlRotatef(currentRot, 0.0f, 1.0f, 0.0f);
       
-      // Glow effect
-      DrawCubeV({0.0f, 0.0f, 0.0f}, {glowSize, glowSize, glowSize},
-                Fade(puColor, 0.2f));
-      
-      // Main icon (cube for most, sphere for some)
-      if (pu.type == PowerUpType::ObstacleReveal || pu.type == PowerUpType::ObstacleSurge) {
-        // Sphere shape
-        DrawCubeV({0.0f, 0.0f, 0.0f}, {iconSize, iconSize, iconSize},
-                  Fade(puColor, 0.8f));
-        DrawCubeV({0.0f, 0.0f, 0.0f}, {iconSize * 1.1f, iconSize * 1.1f, iconSize * 1.1f},
-                  Fade(puColor, 0.15f));
+      // Main icon with distinct shapes (fully opaque, no wireframes)
+      const float scaledSize = iconSize * scalePulse;
+      if (useSphere) {
+        // Sphere shape - solid glowing sphere
+        DrawCubeV({0.0f, 0.0f, 0.0f}, {scaledSize, scaledSize, scaledSize},
+                  puColor);  // Full opacity
+        // White highlight for emissive look
+        DrawCubeV({0.0f, scaledSize * 0.3f, -scaledSize * 0.3f}, 
+                  {scaledSize * 0.4f, scaledSize * 0.4f, scaledSize * 0.4f},
+                  Color{255, 255, 255, 200});
+      } else if (usePyramid) {
+        // Pyramid shape - solid glowing pyramid
+        const float baseH = scaledSize * 0.6f;
+        DrawCubeV({0.0f, -scaledSize * 0.3f, 0.0f}, {scaledSize, baseH, scaledSize},
+                  puColor);
+        DrawCubeV({0.0f, scaledSize * 0.2f, 0.0f}, {scaledSize * 0.5f, scaledSize * 0.4f, scaledSize * 0.5f},
+                  glowColor);
+        // White highlight
+        DrawCubeV({0.0f, scaledSize * 0.25f, -scaledSize * 0.2f},
+                  {scaledSize * 0.3f, scaledSize * 0.2f, scaledSize * 0.3f},
+                  Color{255, 255, 255, 180});
+      } else if (useCylinder) {
+        // Cylinder shape - solid glowing pill
+        DrawCubeV({0.0f, 0.0f, 0.0f}, {scaledSize, scaledSize * 0.8f, scaledSize},
+                  puColor);
+        DrawCubeV({0.0f, scaledSize * 0.35f, 0.0f}, {scaledSize * 0.9f, scaledSize * 0.2f, scaledSize * 0.9f},
+                  glowColor);
+        DrawCubeV({0.0f, -scaledSize * 0.35f, 0.0f}, {scaledSize * 0.9f, scaledSize * 0.2f, scaledSize * 0.9f},
+                  glowColor);
+        // White highlight
+        DrawCubeV({0.0f, scaledSize * 0.3f, -scaledSize * 0.3f},
+                  {scaledSize * 0.5f, scaledSize * 0.15f, scaledSize * 0.5f},
+                  Color{255, 255, 255, 200});
       } else {
-        // Cube shape
-        DrawCubeV({0.0f, 0.0f, 0.0f}, {iconSize, iconSize, iconSize},
-                  Fade(puColor, 0.8f));
-        DrawCubeWiresV({0.0f, 0.0f, 0.0f}, {iconSize, iconSize, iconSize},
-                       puColor);
+        // Default cube - solid glowing cube
+        DrawCubeV({0.0f, 0.0f, 0.0f}, {scaledSize, scaledSize, scaledSize},
+                  puColor);
+        // White highlight
+        DrawCubeV({0.0f, scaledSize * 0.3f, -scaledSize * 0.3f},
+                  {scaledSize * 0.4f, scaledSize * 0.4f, scaledSize * 0.4f},
+                  Color{255, 255, 255, 200});
       }
+      
+      // Glowing base/pedestal on the ground
+      DrawCubeV({0.0f, -renderY + groundY + 0.05f, 0.0f},
+                {scaledSize * 1.2f, 0.1f, scaledSize * 1.2f},
+                Fade(glowColor, 0.8f * glowPulse));
+      
+      // Vertical glow beam (makes them stand out even more)
+      const float beamHeight = scaledSize * 0.8f;
+      DrawCubeV({0.0f, renderY + beamHeight * 0.5f, 0.0f},
+                {scaledSize * 0.3f, beamHeight, scaledSize * 0.3f},
+                Fade(glowColor, 0.5f * glowPulse));
       
       rlPopMatrix();
       
-      // Text labels will be rendered in 2D after EndMode3D
+      // Particle sparkles (simple orbiting particles)
+      const int sparkleCount = 8;
+      constexpr float kPi = 3.14159265359f;
+      for (int s = 0; s < sparkleCount; ++s) {
+        const float sparkleAngleRad = simTime * 2.0f + s * (2.0f * kPi / sparkleCount);
+        const float sparkleRadius = iconSize * scalePulse * 1.3f;
+        const float sparkleX = pu.x + std::cos(sparkleAngleRad) * sparkleRadius;
+        const float sparkleZ = pu.z + std::sin(sparkleAngleRad) * sparkleRadius;
+        const float sparkleY = renderY + 0.3f + 0.2f * std::sin(simTime * 4.0f + s);
+        const float sparkleSize = 0.08f + 0.05f * std::sin(simTime * 5.0f + s);
+        
+        DrawCubeV({sparkleX, sparkleY, sparkleZ}, {sparkleSize, sparkleSize, sparkleSize},
+                  Fade(ringColor, 0.9f));
+      }
     }
     
     // Obstacle reveal visualization
@@ -710,6 +862,103 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
               Fade(BLACK, 0.25f * shadowAlpha));
   }
 
+  // ── Player effect glow (power-ups/debuffs) ──────────────────────────────────
+  // Calculate glow effect based on active effects
+  Color effectGlowColor = {0, 0, 0, 0};  // No glow by default
+  float effectGlowAlpha = 0.0f;
+  bool hasActiveEffect = false;
+  bool isWarningPhase = false;  // About to expire
+  
+  for (int i = 0; i < game.activeEffectCount; ++i) {
+    const auto &effect = game.activeEffects[i];
+    if (effect.type == PowerUpType::None || effect.consumed) continue;
+    
+    // Skip instant effects (ObstacleSurge) - they don't have a duration
+    if (effect.type == PowerUpType::ObstacleSurge) continue;
+    
+    // Check if effect is about to expire (warning phase)
+    // Shield has timer = 0.0f but is consumed on hit, so it won't expire by time
+    bool effectWarning = false;
+    if (effect.timer > 0.0f && effect.timer <= cfg::kPlayerEffectGlowWarningTime) {
+      effectWarning = true;
+      isWarningPhase = true;
+    }
+    
+    // Determine color based on effect type
+    Color effectColor;
+    bool isDebuff = IsDebuff(effect.type);
+    
+    if (isDebuff) {
+      effectColor = Color{255, 80, 80, 255};  // Red for debuffs
+    } else {
+      effectColor = Color{80, 255, 80, 255};  // Green for power-ups
+    }
+    
+    // Calculate glow intensity
+    float glowIntensity = 0.0f;
+    if (effectWarning) {
+      // Blinking effect when about to expire
+      // Create 3 blinks pattern (like traffic light)
+      const float timeUntilExpiry = effect.timer;
+      const float blinkDuration = cfg::kPlayerEffectGlowWarningTime / cfg::kPlayerEffectGlowBlinkCount;
+      const float blinkPhase = std::fmod(timeUntilExpiry, blinkDuration) / blinkDuration;
+      // Blink pattern: fade in, hold, fade out
+      if (blinkPhase < 0.2f) {
+        glowIntensity = blinkPhase / 0.2f;  // Fade in
+      } else if (blinkPhase < 0.4f) {
+        glowIntensity = 1.0f;  // Hold bright
+      } else {
+        glowIntensity = 1.0f - ((blinkPhase - 0.4f) / 0.6f);  // Fade out
+      }
+      glowIntensity *= 0.9f;  // Slightly dimmer during warning
+    } else {
+      // Normal glow when effect is active
+      // Shield (timer = 0) shows steady glow, time-based effects pulse
+      if (effect.timer <= 0.0f) {
+        // Shield or other permanent effects - steady glow
+        glowIntensity = 0.8f;
+      } else {
+        // Time-based effects - gentle pulsing
+        glowIntensity = 0.7f + 0.3f * std::sin(simTime * 2.0f);
+      }
+    }
+    
+    // Use the most urgent effect (warning takes priority, then brightest)
+    if (effectWarning || (!isWarningPhase && glowIntensity > effectGlowAlpha)) {
+      effectGlowColor = effectColor;
+      effectGlowAlpha = glowIntensity;
+      hasActiveEffect = true;
+    }
+  }
+  
+  // Render player glow effect if any effects are active
+  if (hasActiveEffect && effectGlowAlpha > 0.01f) {
+    const float glowSize = cfg::kPlayerEffectGlowSize;
+    const Vector3 glowPos = playerRenderPos;
+    const Vector3 glowSizeVec = {
+      cfg::kPlayerWidth * glowSize,
+      cfg::kPlayerHalfHeight * 2.0f * glowSize,
+      cfg::kPlayerDepth * glowSize
+    };
+    
+    // Outer glow (larger, more transparent)
+    DrawCubeV(glowPos, glowSizeVec, Fade(effectGlowColor, 0.3f * effectGlowAlpha));
+    
+    // Inner glow (tighter, brighter)
+    DrawCubeV(glowPos, {
+      glowSizeVec.x * 0.7f,
+      glowSizeVec.y * 0.7f,
+      glowSizeVec.z * 0.7f
+    }, Fade(effectGlowColor, 0.6f * effectGlowAlpha));
+    
+    // Core glow (brightest)
+    DrawCubeV(glowPos, {
+      glowSizeVec.x * 0.5f,
+      glowSizeVec.y * 0.5f,
+      glowSizeVec.z * 0.5f
+    }, Fade(effectGlowColor, 0.8f * effectGlowAlpha));
+  }
+
   if (g_shipLoaded) {
     const float scale = cfg::kShipModelScale;
     const Vector3 shipPos = {playerRenderPos.x,
@@ -785,11 +1034,20 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
       const char* label = GetPowerUpLabel(pu.type);
       if (!label || label[0] == '\0') continue;
       
-      // Animate text position (match the 3D bob animation)
-      const float bobAmount = 0.15f;
-      const float bobSpeed = 2.5f;
-      const float bobY = pu.y + std::sin(simTime * bobSpeed + pu.bobOffset) * bobAmount;
-      const float textY = bobY + cfg::kPowerUpTextOffset;
+      // Find ground level (same as in 3D rendering)
+      float groundY = pu.y;
+      for (int si = 0; si < lv->segmentCount; ++si) {
+        const auto &seg = lv->segments[si];
+        if (pu.z >= seg.startZ && pu.z <= seg.startZ + seg.length) {
+          if (std::abs(pu.x - seg.xOffset) < seg.width * 0.5f) {
+            groundY = seg.topY;
+            break;
+          }
+        }
+      }
+      
+      // Text position directly above power-up (no bobbing)
+      const float textY = groundY + 0.2f + 0.8f;  // Above the icon
       
       // Convert world position to screen coordinates
       Vector3 textPos = {pu.x, textY, pu.z};
@@ -799,20 +1057,40 @@ void RenderFrame(Game &game, float alpha, float renderDt) {
       if (screenPos.x >= 0 && screenPos.x < cfg::kScreenWidth &&
           screenPos.y >= 0 && screenPos.y < cfg::kScreenHeight &&
           textPos.z > playerRenderPos.z - 5.0f) {
-        const float textPulse = 1.0f + 0.1f * std::sin(simTime * cfg::kPowerUpTextPulseSpeed);
-        const int fontSize = static_cast<int>(14.0f * textPulse);
+        const float textPulse = 1.0f + 0.15f * std::sin(simTime * cfg::kPowerUpTextPulseSpeed);
+        const int fontSize = static_cast<int>(18.0f * textPulse);  // Larger text
         
-        // Determine color based on type
+        // Determine color based on type (match the icon colors)
         Color textColor;
-        bool isDebuff = IsDebuff(pu.type);
-        if (isDebuff) {
-          textColor = Color{255, 150, 100, 255};  // Red/orange for debuffs
-        } else {
-          textColor = Color{150, 220, 255, 255};  // Light blue for power-ups
+        switch (pu.type) {
+          case PowerUpType::Shield:
+            textColor = Color{100, 200, 255, 255};
+            break;
+          case PowerUpType::ScoreMultiplier:
+            textColor = Color{100, 255, 150, 255};
+            break;
+          case PowerUpType::SpeedBoostShield:
+            textColor = Color{200, 150, 255, 255};
+            break;
+          case PowerUpType::SpeedBoostGhost:
+            textColor = Color{255, 200, 100, 255};
+            break;
+          case PowerUpType::ObstacleReveal:
+            textColor = Color{255, 255, 100, 255};
+            break;
+          case PowerUpType::SpeedDrain:
+            textColor = Color{255, 80, 80, 255};
+            break;
+          case PowerUpType::ObstacleSurge:
+            textColor = Color{255, 120, 0, 255};
+            break;
+          default:
+            textColor = Color{200, 200, 200, 255};
+            break;
         }
         
-        // Draw text with outline for visibility
-        const int outlineWidth = 1;
+        // Draw text with stronger outline for visibility
+        const int outlineWidth = 2;
         for (int ox = -outlineWidth; ox <= outlineWidth; ++ox) {
           for (int oy = -outlineWidth; oy <= outlineWidth; ++oy) {
             if (ox != 0 || oy != 0) {

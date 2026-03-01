@@ -145,6 +145,11 @@ constexpr float kPowerUpTextHeight = 0.18f;  // Text size in world units
 constexpr float kPowerUpTextOffset = 0.35f;   // Height above icon
 constexpr float kPowerUpTextPulseSpeed = 3.0f; // Animation speed for text pulse
 
+// Player effect glow
+constexpr float kPlayerEffectGlowWarningTime = 2.5f;  // Start blinking this many seconds before expiry
+constexpr float kPlayerEffectGlowBlinkCount = 3.0f;   // Number of blinks before expiry
+constexpr float kPlayerEffectGlowSize = 1.5f;         // Glow size multiplier around player
+
 // --- Controls ---
 struct KeyConfig {
   int left = 263;         // KEY_LEFT
